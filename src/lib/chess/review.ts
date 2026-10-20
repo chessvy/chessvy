@@ -129,7 +129,7 @@ export async function analyzeGame(
       const move = moves[i], before = stm[i], after = stm[i + 1];
       if (!move || !before || !after || !isSacrifice(move) || isBookMove(move)) continue;
       const uci = move.from + move.to + (move.promotion ?? "");
-      if (before.best >= 600 || -after.best < 0 || winLoss(before.best, -after.best) > 2) continue;
+      if ((before.best >= 600 && before.best < MATE_SCORE - 200) || -after.best < 0 || winLoss(before.best, -after.best) > 2) continue;
       if (signal.cancelled) throw new Error("cancelled");
       const deepBefore = await engine.analyse(move.before, Math.max(VERIFICATION_DEPTH, depth + 4), Math.min(2, new Chess(move.before).moves().length));
       const deepAfter = await engine.analyse(move.after, Math.max(VERIFICATION_DEPTH, depth + 4), Math.min(2, new Chess(move.after).moves().length));

@@ -19,7 +19,7 @@ export const THRESHOLDS = {
   inaccuracy: 10,
   mistake: 20,
   /** Gap between best and 2nd-best line needed to call a best move "Great". */
-  greatGap: 10,
+  greatGap: 20,
   /** Win chance the mover must keep after a sacrifice for "Genius". */
   geniusMinWin: 45,
   /** Opponent's previous error must have handed over at least this much. */
@@ -62,11 +62,16 @@ export function winLoss(bestCp: number, playedCp: number): number {
 export function classifyMove(i: ClassifyInput): Classification {
   const loss = winLoss(i.bestCp, i.playedCp);
   const T = THRESHOLDS;
-  if (i.isSacrifice && i.verified && loss <= 1 && i.playedCp >= 0 && i.bestCp < 600) return "genius";
+  const isMate = (cp: number | null) => cp !== null && cp >= MATE_SCORE - 200;
+  if (i.isSacrifice && i.verified && loss <= 1 && i.playedCp >= 0) {
+    // Sound sacrifice in a balanced/slightly better position, or the only forced mate.
+    if (i.bestCp < 600) return "genius";
+    if (i.playedIsBest && isMate(i.bestCp) && !isMate(i.secondCp)) return "genius";
+  }
   if (i.playedIsBest || loss <= 0.5) {
     const onlyMove =
       i.secondCp !== null && winChance(i.bestCp) - winChance(i.secondCp) >= T.greatGap;
-    if (onlyMove && i.playedIsBest && loss <= T.excellent) return "great";
+    if (onlyMove && i.playedIsBest && loss <= T.excellent && Math.abs(i.bestCp) < 700) return "great";
     return "best";
   }
   if (loss <= T.excellent) return "excellent";

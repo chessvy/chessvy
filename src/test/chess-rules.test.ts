@@ -48,6 +48,18 @@ describe("classification", () => {
   it("never awards Genius when the sacrifice loses more than 1% win chance", () => {
     expect(classifyMove({ ...base, bestCp: 200, playedCp: 100, playedIsBest: false, secondCp: 150, isSacrifice: true, verified: true })).not.toBe("genius");
   });
+  it("forced-mate queen sacrifice (only mating line) is genius", () => {
+    expect(classifyMove({ ...base, bestCp: 9998, playedCp: 9998, playedIsBest: true, secondCp: 900, isSacrifice: true, verified: true })).toBe("genius");
+  });
+  it("a sacrifice is not genius when another line also mates", () => {
+    expect(classifyMove({ ...base, bestCp: 9998, playedCp: 9998, playedIsBest: true, secondCp: 9996, isSacrifice: true, verified: true })).not.toBe("genius");
+  });
+  it("great needs a 20-point gap to the second-best move", () => {
+    expect(classifyMove({ ...base, bestCp: 100, playedCp: 100, playedIsBest: true, secondCp: 20 })).toBe("best");
+  });
+  it("no great move in an already decided position", () => {
+    expect(classifyMove({ ...base, bestCp: 900, playedCp: 900, playedIsBest: true, secondCp: 0 })).toBe("best");
+  });
   it("never uses the word Brilliant", () => {
     expect(classifyMove({ ...base, bestCp: 0, playedCp: 0, playedIsBest: true })).not.toBe("brilliant");
   });
