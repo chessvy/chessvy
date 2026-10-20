@@ -16,7 +16,7 @@ export const ASSET = {
     defeat: "/icons/defeat-fallen-king.png",
   },
   sounds: { move: "/sounds/move.mp3", capture: "/sounds/capture.mp3" },
-  platforms: { lichess: "/platforms/lichess.svg", chesscom: "/platforms/chesscom.png" },
+  platforms: { lichess: "/platforms/lichess.svg", chesscom: "/platforms/chesscom.png", wordmarks: { lichess: "/platforms/lichess-wordmark.svg", chesscom: "/platforms/chesscom-wordmark.svg" } },
   wordmarks: { lichess: "/platforms/lichess-wordmark.svg", chesscom: "/platforms/chesscom-wordmark.svg" },
   logo: "/brand/chessvy-logo.png",
   piece: (set: "merida" | "alpha", piece: string) => `/pieces/${set}/${piece}.svg`,
