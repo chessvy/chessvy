@@ -6,7 +6,7 @@ export type PieceSet = typeof PIECE_SETS[number];
 export function readAppearance(value: unknown): { board: BoardTheme; pieces: PieceSet } {
   const settings = value && typeof value === "object" ? value as Record<string, unknown> : {};
   return {
-    board: BOARD_THEMES.find(theme => theme === settings.board) ?? "jade",
-    pieces: PIECE_SETS.find(set => set === settings.pieces) ?? "classic",
+    board: BOARD_THEMES.find(theme => theme === settings["board"]) ?? "jade",
+    pieces: PIECE_SETS.find(set => set === settings["pieces"]) ?? "classic",
   };
 }
