@@ -61,7 +61,7 @@ export function ReviewWorkspace() {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
   const [settingsReady, setSettingsReady] = useState(false);
-  useEffect(() => { try { const v = JSON.parse(localStorage.getItem("chessvy-settings") ?? "{}"); const appearance = readAppearance(v); setBoardTheme(appearance.board); setPieceSet(appearance.pieces); if (typeof v.depth === "number" && Number.isFinite(v.depth)) setDepth(Math.max(12, Math.min(24, Math.round(v.depth)))); if (typeof v.arrows === "boolean") setShowArrows(v.arrows); if (typeof v.evalBar === "boolean") setShowEvalBar(v.evalBar); } catch { /* ignore */ } setSettingsReady(true); }, []);
+  useEffect(() => { try { const v = JSON.parse(localStorage.getItem("chessvy-settings") ?? "{}"); const appearance = readAppearance(v); setBoardTheme(appearance.board); setPieceSet(appearance.pieces); if (typeof v.depth === "number" && Number.isFinite(v.depth)) setDepth(([12, 15, 18, 22].includes(v.depth) ? v.depth : 15)); if (typeof v.arrows === "boolean") setShowArrows(v.arrows); if (typeof v.evalBar === "boolean") setShowEvalBar(v.evalBar); } catch { /* ignore */ } setSettingsReady(true); }, []);
   useEffect(() => { if (!settingsReady) return; try { localStorage.setItem("chessvy-settings", JSON.stringify({ depth, arrows: showArrows, evalBar: showEvalBar, board: boardTheme, pieces: pieceSet })); } catch { /* storage unavailable */ } }, [depth, showArrows, showEvalBar, boardTheme, pieceSet, settingsReady]);
   useEffect(() => { if (!copied) return; const timer = setTimeout(() => setCopied(false), 2000); return () => clearTimeout(timer); }, [copied]);
   const exportedPgn = useMemo(() => exportGamePgn(moves, headers), [moves, headers]);
@@ -88,17 +88,15 @@ export function ReviewWorkspace() {
     void audio.prepare();
     const unlock = () => audio.unlock();
     window.addEventListener("pointerdown", unlock);
-    const click = (e: PointerEvent) => { if (soundRef.current && (e.target as HTMLElement)?.closest("button")) audio.click(); };
-    window.addEventListener("pointerdown", click);
     window.addEventListener("keydown", unlock);
-    return () => { window.removeEventListener("pointerdown", unlock); window.removeEventListener("keydown", unlock); window.removeEventListener("pointerdown", click); audio.dispose(); audioRef.current = null; };
+    return () => { window.removeEventListener("pointerdown", unlock); window.removeEventListener("keydown", unlock); audio.dispose(); audioRef.current = null; };
   }, []);
   useEffect(() => {
     if (ply !== previousPly.current && ply > 0 && sound) {
       const move = moves[ply - 1];
       if (move) void audioRef.current?.play(moveSound(move));
       const cls = review?.moves[ply - 1]?.classification;
-      if (cls === "genius") audioRef.current?.genius(); else if (cls === "great") audioRef.current?.great();
+      if (cls === "genius") audioRef.current?.genius();
     }
     previousPly.current = ply;
   }, [ply, sound, moves, review]);
@@ -207,9 +205,8 @@ export function ReviewWorkspace() {
           <div className="absolute inset-x-0 bg-eval-white transition-all duration-500" style={orientation === "white" ? { bottom: 0, height: `${whitePct}%` } : { top: 0, height: `${whitePct}%` }} />
           <span className={`eval-number absolute inset-x-0 text-center font-semibold ${evalCp !== null && evalCp < 0 ? "text-eval-white" : "text-eval-black"}`} style={orientation === "white" ? (evalCp !== null && evalCp < 0 ? { top: 6 } : { bottom: 6 }) : (evalCp !== null && evalCp < 0 ? { bottom: 6 } : { top: 6 })}>{formatEvaluation(evalCp)}</span>
         </div>}
-        <div className="rank-labels flex flex-col">{[...ranks].map(rank => <span key={rank} className="grid flex-1 place-items-center text-foreground/50">{rank}</span>)}</div>
         <div className="board-frame relative aspect-square min-w-0">
-          <Chessboard options={{ id: "chessvy-board", position: fen, pieces: PIECE_RENDERERS[pieceSet], boardOrientation: orientation, squareStyles, showNotation: false, arrows, allowDrawingArrows: true,
+          <Chessboard options={{ id: "chessvy-board", position: fen, pieces: PIECE_RENDERERS[pieceSet], boardOrientation: orientation, squareStyles, showNotation: true, arrows, allowDrawingArrows: true,
             lightSquareStyle: { backgroundColor: "var(--board-light)" }, darkSquareStyle: { backgroundColor: "var(--board-dark)" },
             onPieceDrop: ({ sourceSquare, targetSquare }) => targetSquare ? playMove(sourceSquare as Square, targetSquare as Square) : false,
             onSquareClick: ({ square }) => { const sq = square as Square; if (selected && selected !== sq && playMove(selected, sq)) return; const p = game.get(sq); setSelected(p && p.color === game.turn() ? sq : null); }, animationDurationInMs: 180 }} />
@@ -229,7 +226,6 @@ export function ReviewWorkspace() {
           {kingOutcomes.some(k => k.outcome !== "defeat") && <Confetti key={`confetti-${finalResult}`} />}
           {promo && <div className="absolute inset-0 z-20 flex items-center justify-center bg-overlay"><div className="flex gap-2 rounded-md border border-border bg-card p-3">{(["q", "r", "b", "n"] as const).map(p => <Button key={p} variant="secondary" onClick={() => { const pr = promo; setPromo(null); playMove(pr.from, pr.to, p); }}>{{ q: "♛", r: "♜", b: "♝", n: "♞" }[p]}<span className="sr-only">{{ q: "Queen", r: "Rook", b: "Bishop", n: "Knight" }[p]}</span></Button>)}</div></div>}
         </div>
-        <div className="file-labels col-start-3 grid grid-cols-8 text-center text-foreground/50">{[...files].map(f => <span key={f}>{f}</span>)}</div>
       </div>
       <PlayerTag name={orientation === "white" ? headers["White"] : headers["Black"]} fallback={orientation === "white" ? "White" : "Black"} rating={orientation === "white" ? headers["WhiteElo"] : headers["BlackElo"]} platform={platform} />
       <div className="playback-toolbar mt-4 grid grid-cols-[auto_1fr_auto] items-center gap-1 border-y border-border py-2">
@@ -276,9 +272,7 @@ export function ReviewWorkspace() {
     </aside>
     <BoardAppearance open={appearanceOpen} onOpenChange={setAppearanceOpen} board={boardTheme} pieceSet={pieceSet} onBoard={setBoardTheme} onPieces={setPieceSet} />
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}><DialogContent aria-describedby={undefined} className="text-sm"><DialogTitle>Review settings</DialogTitle><div className="space-y-5 pt-3">
-        <label className="block"><span className="flex justify-between"><span>Analysis depth</span><span className="font-semibold">{depth}</span></span>
-          <input type="range" min={12} max={24} value={depth} onChange={e => setDepth(Number(e.target.value))} className="mt-2 w-full accent-primary" />
-</label>
+        <div><p>Analysis depth</p><div role="group" aria-label="Analysis depth" className="mt-2 grid grid-cols-4 gap-2">{[{ d: 12, l: "Fast" }, { d: 15, l: "Normal" }, { d: 18, l: "Deep" }, { d: 22, l: "Max" }].map(o => <Button key={o.d} size="sm" variant={depth === o.d ? "default" : "secondary"} aria-pressed={depth === o.d} onClick={() => setDepth(o.d)} className="flex-col h-auto py-1.5"><span className="font-semibold">{o.l}</span><span className="text-[10px] opacity-70">{o.d}</span></Button>)}</div></div>
         <label className="flex items-center justify-between"><span>Best-move arrows</span><input type="checkbox" checked={showArrows} onChange={e => setShowArrows(e.target.checked)} className="h-4 w-4 accent-primary" /></label>
         <label className="flex items-center justify-between"><span>Evaluation bar</span><input type="checkbox" checked={showEvalBar} onChange={e => setShowEvalBar(e.target.checked)} className="h-4 w-4 accent-primary" /></label>
       </div></DialogContent></Dialog>

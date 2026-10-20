@@ -11,7 +11,7 @@ import {
   type Classification,
 } from "./classify";
 
-export const ENGINE_DEPTH = 20;
+export const ENGINE_DEPTH = 15;
 export const VERIFICATION_DEPTH = 22;
 const VALUE: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
 
