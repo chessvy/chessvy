@@ -88,17 +88,15 @@ export function ReviewWorkspace() {
     void audio.prepare();
     const unlock = () => audio.unlock();
     window.addEventListener("pointerdown", unlock);
-    const click = (e: PointerEvent) => { if (soundRef.current && (e.target as HTMLElement)?.closest("button")) audio.click(); };
-    window.addEventListener("pointerdown", click);
     window.addEventListener("keydown", unlock);
-    return () => { window.removeEventListener("pointerdown", unlock); window.removeEventListener("keydown", unlock); window.removeEventListener("pointerdown", click); audio.dispose(); audioRef.current = null; };
+    return () => { window.removeEventListener("pointerdown", unlock); window.removeEventListener("keydown", unlock); audio.dispose(); audioRef.current = null; };
   }, []);
   useEffect(() => {
     if (ply !== previousPly.current && ply > 0 && sound) {
       const move = moves[ply - 1];
       if (move) void audioRef.current?.play(moveSound(move));
       const cls = review?.moves[ply - 1]?.classification;
-      if (cls === "genius") audioRef.current?.genius(); else if (cls === "great") audioRef.current?.great();
+      if (cls === "genius") audioRef.current?.genius();
     }
     previousPly.current = ply;
   }, [ply, sound, moves, review]);

@@ -66,7 +66,6 @@ export function classifyMove(i: ClassifyInput): Classification {
   if (i.playedIsBest || loss <= 0.5) {
     const onlyMove =
       i.secondCp !== null && winChance(i.bestCp) - winChance(i.secondCp) >= T.greatGap;
-    if (i.isSacrifice && i.verified && i.playedCp >= 0 && i.bestCp < 600) return "genius";
     if (onlyMove && i.playedIsBest && loss <= T.excellent) return "great";
     return "best";
   }

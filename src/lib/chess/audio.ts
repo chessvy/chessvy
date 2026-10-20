@@ -75,10 +75,6 @@ export class ReviewAudio {
     [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => { this.tone(f, 0.05 + i * 0.07, 0.6, 0.12, "triangle"); this.tone(f * 2, 0.05 + i * 0.07, 0.35, 0.03); });
     [2093, 2637, 3136, 2637, 3520].forEach((f, i) => this.tone(f, 0.42 + i * 0.05, 0.45, 0.035));
   }
-  /** Great: short two-note chime. */
-  great() { this.unlock(); if (!this.context) return; this.tone(783.99, 0.05, 0.35, 0.1, "triangle"); this.tone(1174.66, 0.13, 0.45, 0.09, "triangle"); }
-  /** Soft tactile click for buttons. */
-  click() { if (!this.context || this.context.state !== "running") return; this.tone(1800, 0, 0.04, 0.04, "square"); this.tone(600, 0, 0.06, 0.05); }
   stop() { try { this.active?.stop(); } catch { /* Already stopped. */ } this.active = null; }
   dispose() { this.stop(); void this.context?.close().catch(() => {}); this.context = null; }
 }
