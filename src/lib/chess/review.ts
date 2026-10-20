@@ -129,7 +129,7 @@ export async function analyzeGame(
       const move = moves[i], before = stm[i], after = stm[i + 1];
       if (!move || !before || !after || !isSacrifice(move) || isBookMove(move)) continue;
       const uci = move.from + move.to + (move.promotion ?? "");
-      if (before.move !== uci || before.best >= 600 || -after.best < 0) continue;
+      if (before.best >= 600 || -after.best < 0 || winLoss(before.best, -after.best) > 2) continue;
       if (signal.cancelled) throw new Error("cancelled");
       const deepBefore = await engine.analyse(move.before, Math.max(VERIFICATION_DEPTH, depth + 4), Math.min(2, new Chess(move.before).moves().length));
       const deepAfter = await engine.analyse(move.after, Math.max(VERIFICATION_DEPTH, depth + 4), Math.min(2, new Chess(move.after).moves().length));
@@ -144,7 +144,8 @@ export async function analyzeGame(
       }
       evals[i] = move.color === "w" ? first.score : -first.score;
       evals[i + 1] = move.color === "w" ? -next.score : next.score;
-      if (first.move === uci && (first.depth ?? 0) >= VERIFICATION_DEPTH && (next.depth ?? 0) >= VERIFICATION_DEPTH && -next.score >= 0 && winLoss(first.score, -next.score) <= 0.5) verified.add(i);
+      const playedDeep = playedScores.get(i) ?? -next.score;
+      if (winLoss(first.score, playedDeep) <= 1 && (first.depth ?? 0) >= VERIFICATION_DEPTH && (next.depth ?? 0) >= VERIFICATION_DEPTH && -next.score >= 0) verified.add(i);
       if (signal.cancelled) throw new Error("cancelled");
       onProgress(fens.length, fens.length, [...evals]);
     }

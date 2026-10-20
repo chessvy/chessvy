@@ -5,7 +5,7 @@ import { BOARD_THEMES, PIECE_SETS, type BoardTheme, type PieceSet } from "@/lib/
 import { Check } from "lucide-react";
 import { ASSET } from "@/lib/asset-paths";
 
-const names = { jade: "Jade", stone: "Stone", ocean: "Ocean", rose: "Rose", classic: "Classic", merida: "Merida", alpha: "Alpha" };
+const names = { stone: "Stone", walnut: "Walnut", emerald: "Emerald", marble: "Marble", classic: "Classic", merida: "Merida", alpha: "Alpha" };
 const pieces = (set: Exclude<PieceSet, "classic">): PieceRenderObject => Object.fromEntries(
   ["w", "b"].flatMap(color => ["K", "Q", "R", "B", "N", "P"].map(piece => [color + piece,
     () => <img src={ASSET.piece(set, color + piece)} alt="" draggable={false} className="h-full w-full select-none" />]))

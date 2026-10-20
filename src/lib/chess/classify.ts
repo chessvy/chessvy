@@ -62,10 +62,11 @@ export function winLoss(bestCp: number, playedCp: number): number {
 export function classifyMove(i: ClassifyInput): Classification {
   const loss = winLoss(i.bestCp, i.playedCp);
   const T = THRESHOLDS;
+  if (i.isSacrifice && i.verified && loss <= 1 && i.playedCp >= 0 && i.bestCp < 600) return "genius";
   if (i.playedIsBest || loss <= 0.5) {
     const onlyMove =
       i.secondCp !== null && winChance(i.bestCp) - winChance(i.secondCp) >= T.greatGap;
-    if (onlyMove && i.playedIsBest && loss <= 0.5 && i.isSacrifice && i.verified && i.playedCp >= 0 && i.bestCp < 600) return "genius";
+    if (i.isSacrifice && i.verified && i.playedCp >= 0 && i.bestCp < 600) return "genius";
     if (onlyMove && i.playedIsBest && loss <= T.excellent) return "great";
     return "best";
   }
