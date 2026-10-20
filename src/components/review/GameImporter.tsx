@@ -31,7 +31,7 @@ export function GameImporter({ pgn, setPgn, onLoad, sample, onNewGame, initialTa
       {([['pgn', 'PGN'], ['chesscom', 'Chess.com'], ['lichess', 'Lichess'], ['new', 'New game']] as const).map(([key, label]) =>
         <Button key={key} role="tab" aria-selected={tab === key} variant="tile" className="source-tile h-auto min-w-0 flex-col gap-1.5 px-1 py-3 text-[11px] sm:text-xs"
           onClick={() => { ++request.current; setTab(key); setGames(null); setErr(null); setLoading(false); }}>
-          {key === "pgn" ? <><FileText /><span className="truncate">{label}</span></> : key === "new" ? <><Swords /><span className="truncate">{label}</span></> : <img src={ASSET.platforms.wordmarks[key]} alt={label} className="h-5 w-full max-w-[96px] object-contain" />}
+          {key === "pgn" ? <><FileText /><span className="truncate">{label}</span></> : key === "new" ? <><Swords /><span className="truncate">{label}</span></> : <img src={ASSET.platforms.wordmarks[key]} alt={label} style={{ height: 22, width: 92 }} className="object-contain" />}
         </Button>)}
     </div>
     {tab === "new" ? <div className="mt-5 text-sm"><p className="text-muted-foreground">Start from the opening position and play moves on the board yourself, then run a review.</p><Button size="lg" className="mt-4 w-full" onClick={onNewGame}><Swords />Start new game</Button></div> : tab === "pgn" ? <>
