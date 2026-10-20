@@ -18,15 +18,14 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   return (
-    <div className="review-app min-h-screen">
-      <header className="app-header border-b border-border">
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6">
-          <span className="relative flex h-8 w-7 shrink-0 items-center justify-center overflow-hidden"><img src={ASSET.logo} alt="" className="h-14 w-14 max-w-none shrink-0 object-contain" /></span>
-          <span className="font-display text-2xl font-bold">Chessvy</span>
-          <span className="ml-2 border-l border-border pl-4 text-sm font-medium">Game Review</span>
+    <div className="min-h-screen">
+      <header className="border-b border-border bg-card/60">
+        <div className="mx-auto flex h-14 max-w-7xl items-center px-4">
+          <span className="relative flex h-6 w-5 shrink-0 items-center justify-center overflow-hidden"><img src={ASSET.logo} alt="" className="h-12 w-12 max-w-none shrink-0 object-contain" /></span>
+          <span className="ml-2 font-display text-xl font-bold">Chessvy</span>
         </div>
       </header>
-      <main className="mx-auto max-w-7xl px-3 py-3 sm:px-6 sm:py-6">
+      <main className="mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-6">
         <ReviewWorkspace />
       </main>
     </div>

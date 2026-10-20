@@ -13,8 +13,6 @@ import { gameOutcome } from "@/lib/chess/outcome";
 import { GameImporter } from "./GameImporter";
 import { exportGamePgn } from "@/lib/chess/pgn";
 import { PlayerAvatar, PlatformLogo, type Platform } from "./PlayerAvatar";
-import { ReviewSummary } from "./ReviewSummary";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 const START = new Chess().fen();
 // SVG presentation attributes cannot resolve CSS variables, so the arrow colour is a literal.
@@ -26,7 +24,6 @@ const SAMPLE = `[White "Paul Morphy"]
 1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# 1-0`;
 
 export function ReviewWorkspace() {
-  const [importOpen, setImportOpen] = useState(false);
   const [pgn, setPgn] = useState("");
   const [moves, setMoves] = useState<Move[]>([]);
   const [headers, setHeaders] = useState<Record<string, string>>({});
@@ -91,7 +88,8 @@ export function ReviewWorkspace() {
     previousPly.current = ply;
   }, [ply, sound, moves]);
   const reviewAnother = () => {
-    setImportOpen(true);
+    importerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    importerRef.current?.querySelector<HTMLTextAreaElement>("textarea")?.focus({ preventScroll: true });
   };
   useEffect(() => {
     if (!playing) return;
@@ -110,7 +108,7 @@ export function ReviewWorkspace() {
       setMoves(r.moves); setHeaders(r.headers);
       setPlatform(source ?? (r.headers["Site"]?.includes("lichess.org") ? "lichess" : r.headers["Site"]?.includes("chess.com") ? "chesscom" : undefined));
       setReview(null); setPartial([]); setProgress(null); setPly(0); previousPly.current = 0;
-      setSection("review"); setCopied(false); setCopyError(null); setImportOpen(false);
+      setSection("review"); setCopied(false); setCopyError(null);
     } catch (e) { setError((e as Error).message); }
   };
   const runReview = async () => {
@@ -184,9 +182,9 @@ export function ReviewWorkspace() {
   const arrows = bestUci ? [{ startSquare: bestUci.slice(0, 2), endSquare: bestUci.slice(2, 4), color: BEST_ARROW }] : [];
 
   return <div className="workspace-grid">
-    <section className="board-column min-w-0">
+    <section className="min-w-0">
       <PlayerTag name={orientation === "white" ? headers["Black"] : headers["White"]} fallback={orientation === "white" ? "Black" : "White"} rating={orientation === "white" ? headers["BlackElo"] : headers["WhiteElo"]} platform={platform} />
-      <div className={`board-layout mt-2 ${showEvalBar ? "" : "no-eval"}`}>
+      <div className={`board-layout mt-3 ${showEvalBar ? "" : "no-eval"}`}>
         {showEvalBar && <div className="eval-bar relative overflow-hidden rounded-sm bg-eval-black" role="meter" aria-label="Evaluation bar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={whitePct} aria-valuetext={formatEvaluation(evalCp)}>
           <div className="absolute inset-x-0 bg-eval-white transition-all duration-500" style={orientation === "white" ? { bottom: 0, height: `${whitePct}%` } : { top: 0, height: `${whitePct}%` }} />
           <span className={`eval-number absolute inset-x-0 text-center font-semibold ${evalCp !== null && evalCp < 0 ? "text-eval-white" : "text-eval-black"}`} style={orientation === "white" ? (evalCp !== null && evalCp < 0 ? { top: 6 } : { bottom: 6 }) : (evalCp !== null && evalCp < 0 ? { bottom: 6 } : { top: 6 })}>{formatEvaluation(evalCp)}</span>
@@ -235,23 +233,21 @@ export function ReviewWorkspace() {
         <label className="flex items-center justify-between"><span>Evaluation bar</span><input type="checkbox" checked={showEvalBar} onChange={e => setShowEvalBar(e.target.checked)} className="h-4 w-4 accent-primary" /></label>
       </div>}
       {review && ply === moves.length && gameOutcome(headers["Result"], orientation) && <div key={`ending-${orientation}`} role="status" className="badge-pop mt-3 flex items-center justify-center gap-3"><img className="h-8 w-8" src={RESULT_ICON[gameOutcome(headers["Result"], orientation) ?? "draw"]} alt="" /><span className="text-sm font-medium">{headers["Result"] === "1/2-1/2" ? "Draw" : `${headers[headers["Result"] === "1-0" ? "White" : "Black"] ?? (headers["Result"] === "1-0" ? "White" : "Black")} wins`}</span></div>}
-      <p className="mt-2 text-center text-xs text-foreground/60">{ply} / {moves.length} {last ? `· ${last.san}` : ""}</p>
-      {(progress || evals.length > 0) && <EvalGraph review={review} evals={evals} total={moves.length + 1} ply={ply} onPick={jump} />}
+      <p className="mt-2 text-center text-xs text-foreground/40">{ply} / {moves.length} {last ? `· ${last.san}` : ""}</p>
     </section>
-    <aside className="review-sidebar min-w-0">
-      <section className="review-panel-content">
-        <div className="flex items-center justify-between gap-2"><h1 className="font-display text-xl font-bold">Game Review</h1><div className="flex items-center gap-2"><span className="review-status text-xs text-foreground">{progress ? "Analyzing" : review ? "Complete" : `Depth ${depth}`}</span><IconControl label="Import a game" onClick={reviewAnother}><Plus /></IconControl></div></div>
+    <aside className="review-sidebar min-w-0 space-y-5">
+      <section>
+        <div className="flex items-center justify-between"><h2 className="font-display text-xl font-semibold">Game review</h2><span className="review-status text-xs text-foreground">{progress ? "Analyzing" : review ? "Complete" : `Depth ${depth}`}</span></div>
         <div role="tablist" aria-label="Analysis sections" className="analysis-tabs mt-3 grid grid-cols-3 border-b border-border pb-2">
           {(["review", "insights", "report"] as const).map(tab => <Button key={tab} role="tab" aria-selected={section === tab} aria-controls="analysis-panel" variant={section === tab ? "secondary" : "ghost"} onClick={() => setSection(tab)} className="capitalize">{tab}</Button>)}
         </div>
-        {review && section === "review" && <ReviewSummary review={review} />}
-        <div className="review-action mt-4 flex items-center gap-2">
-          <Button size="lg" className="review-run flex-1 font-bold" onClick={runReview} disabled={!moves.length || !!progress}>{progress ? <LoaderCircle className="animate-spin" /> : <ScanLine />}{progress ? "Reviewing…" : review ? "Run again" : "Run review"}</Button>
+        {(progress || evals.length > 0) && <EvalGraph review={review} evals={evals} total={moves.length + 1} ply={ply} onPick={jump} />}
+        <div className="mt-3 flex items-center gap-2">
+          <Button className="flex-1" onClick={runReview} disabled={!moves.length || !!progress}>{progress ? <LoaderCircle className="animate-spin" /> : <ScanLine />}{progress ? "Reviewing…" : review ? "Run again" : "Run review"}</Button>
           {progress && <IconControl label="Stop review" onClick={() => { cancelRef.current.cancelled = true; setProgress(null); }}><Stop /></IconControl>}
         </div>
         {progress && <div className="mt-3" role="status"><div className="h-1 overflow-hidden rounded-sm bg-secondary"><div className="h-full bg-primary transition-all" style={{ width: `${progress.done / progress.total * 100}%` }} /></div><p className="mt-2 text-xs text-foreground/50">Depth {depth} · {progress.done === progress.total ? "Verifying played moves…" : `${progress.done}/${progress.total} positions`}</p></div>}
         <div id="analysis-panel" role="tabpanel">
-        {section === "review" && !!moves.length && !analyzed && <div className="position-verdict mt-4 flex items-center gap-3"><span className="position-symbol" aria-hidden>♟</span><div><p className="text-sm font-semibold">{ply === 0 ? "Starting position" : last?.san}</p><p className="mt-1 text-xs text-foreground/70">{progress ? "Analyzing your game…" : review ? "Game ready" : `${headers["White"] ?? "White"} vs ${headers["Black"] ?? "Black"}`}</p></div></div>}
         {section === "review" && analyzed && <div key={ply} className={`move-verdict mt-4 flex items-center gap-3 border-l-2 border-primary pl-3 ${analyzed.classification === "genius" ? "brilliant-verdict" : ""}`}><div className="h-9 w-9 shrink-0"><ReviewBadge classification={analyzed.classification} special={special} /></div><div className="min-w-0 text-sm"><p className="font-semibold">{analyzed.san} · {CLASS_LABEL[analyzed.classification]}</p>{analyzed.bestMoveSan && analyzed.bestMoveSan !== analyzed.san && <p className="mt-1 text-xs text-foreground/60">Best move: {analyzed.bestMoveSan}</p>}</div></div>}
         {section === "review" && nextCritical && <Button variant="ghost" className="mt-3 w-full justify-start" onClick={() => jump(nextCritical.ply)}><Flag />Next key moment</Button>}
         {section !== "review" && !review && <p className="mt-4 text-sm text-foreground/50">{progress ? "Analysis in progress…" : "No game analysis yet."}</p>}
@@ -260,11 +256,10 @@ export function ReviewWorkspace() {
         </div>
         {error && <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>}
       </section>
-      {!moves.length && <div ref={importerRef} className="empty-import"><GameImporter pgn={pgn} setPgn={setPgn} onLoad={load} sample={SAMPLE} /></div>}
-      {!!moves.length && <section className="moves-section border-t border-border"><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 className="font-display font-semibold">Moves <span className="ml-2 text-xs font-normal text-foreground/40">{headers["Result"] ?? "*"}</span></h2><div className="flex items-center gap-1"><IconControl label={copied ? "Copied PGN" : "Copy PGN"} onClick={copyPgn}>{copied ? <Check /> : <Copy />}</IconControl><IconControl label="Download PGN" onClick={downloadPgn}><Download /></IconControl></div></div><span role="status" className="sr-only">{copied ? "PGN copied to clipboard" : ""}</span>{copyError && <p role="alert" className="mb-2 text-xs text-destructive">{copyError}</p>}<ol className="grid max-h-80 grid-cols-[2rem_1fr_1fr] gap-y-1 overflow-y-auto text-sm">{Array.from({ length: Math.ceil(moves.length / 2) }).map((_, r) => <MoveRow key={r} r={r} moves={moves} review={review} ply={ply} setPly={jump} />)}</ol></section>}
-      {!!moves.length && <div className="review-footer border-t border-border"><Button variant="secondary" className="w-full" onClick={reviewAnother}><Plus />Review another game</Button></div>}
+      {!!moves.length && <Button variant="outline" className="w-full" onClick={reviewAnother}><Plus />Review another game</Button>}
+      <div ref={importerRef}><GameImporter pgn={pgn} setPgn={setPgn} onLoad={load} sample={SAMPLE} /></div>
+      {!!moves.length && <section className="border-t border-border pt-4"><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 className="font-display font-semibold">Moves <span className="ml-2 text-xs font-normal text-foreground/40">{headers["Result"] ?? "*"}</span></h2><div className="flex items-center gap-1"><Button variant="ghost" size="sm" onClick={copyPgn}>{copied ? <Check /> : <Copy />}{copied ? "Copied" : "Copy PGN"}</Button><IconControl label="Download PGN" onClick={downloadPgn}><Download /></IconControl></div></div><span role="status" className="sr-only">{copied ? "PGN copied to clipboard" : ""}</span>{copyError && <p role="alert" className="mb-2 text-xs text-destructive">{copyError}</p>}<ol className="grid max-h-80 grid-cols-[2rem_1fr_1fr] gap-y-1 overflow-y-auto text-sm">{Array.from({ length: Math.ceil(moves.length / 2) }).map((_, r) => <MoveRow key={r} r={r} moves={moves} review={review} ply={ply} setPly={jump} />)}</ol></section>}
     </aside>
-    <Dialog open={importOpen} onOpenChange={setImportOpen}><DialogContent aria-describedby={undefined} className="import-dialog max-h-[85dvh] overflow-y-auto"><DialogTitle>New game</DialogTitle><GameImporter pgn={pgn} setPgn={setPgn} onLoad={load} sample={SAMPLE} />{error && <p role="alert" className="text-sm text-foreground">{error}</p>}</DialogContent></Dialog>
   </div>;
 }
 function IconControl({ label, onClick, children, disabled, active }: { label: string; onClick: () => void; children: ReactNode; disabled?: boolean; active?: boolean }) {
@@ -286,7 +281,7 @@ function EvalGraph({ review, evals, total, ply, onPick }: { review: GameReview |
   const line = pts.map((p, i) => `${i ? "L" : "M"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
   const area = last ? `${line} L${last.x},${h} L0,${h} Z` : "";
   const pick = (n: number) => onPick(Math.max(0, Math.min(evals.length - 1, n)));
-  return <div className="evaluation-chart mt-4"><div className="mb-2 flex justify-between text-xs text-foreground/50"><span>Evaluation</span><span>{formatEvaluation(evals[ply] ?? null)}</span></div>
+  return <div className="mt-4"><div className="mb-2 flex justify-between text-xs text-foreground/50"><span>Evaluation</span><span>{formatEvaluation(evals[ply] ?? null)}</span></div>
     <svg role="slider" tabIndex={evals.length ? 0 : -1} aria-label="Evaluation graph" aria-valuemin={0} aria-valuemax={Math.max(0, evals.length - 1)} aria-valuenow={Math.min(ply, Math.max(0, evals.length - 1))} viewBox={`0 0 ${w} ${h}`} className="w-full cursor-crosshair rounded-sm bg-eval-black" onClick={e => { if (!evals.length) return; const r = e.currentTarget.getBoundingClientRect(); pick(Math.round((e.clientX - r.left) / r.width * (total - 1))); }} onKeyDown={e => { if (!evals.length) return; if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); pick(ply + (e.key === "ArrowRight" ? 1 : -1)); } }}>
       <path d={area} className="fill-eval-white" opacity={0.85} /><line x1={0} x2={w} y1={h / 2} y2={h / 2} className="stroke-foreground" opacity={0.2} strokeDasharray="3 3" />
       <path d={line} className="stroke-foreground" fill="none" strokeWidth={2} />{current && <line x1={current.x} x2={current.x} y1={0} y2={h} className="stroke-foreground" strokeWidth={2} />}
