@@ -304,12 +304,112 @@
   .player-tag { min-height: 38px; }
   .player-tag p:first-child { font-size: 13px; }
   .workspace-grid { gap: 26px; }
-  .no-game .review-sidebar { grid-row: 1; }
-  .no-game .board-column { grid-row: 2; }
   .board-heading { margin-left: 0; }
   .evaluation-chart { margin-left: 0; }
   .eval-plot { height: 120px; }
   .review-panel-content { padding-bottom: 16px; }
   .review-sidebar { border-top: 1px solid var(--border); padding-top: 20px; }
-  .no-game .review-sidebar { border-top: 0; padding-top: 4px; }
 }
+
+/* Chessvy gold edition: warm charcoal surfaces, golden primary, varied accents. */
+:root {
+  --background: oklch(0.17 0.008 70);
+  --foreground: oklch(0.97 0.01 85);
+  --card: oklch(0.215 0.01 70);
+  --popover: oklch(0.235 0.012 70);
+  --primary: oklch(0.8 0.14 82);
+  --primary-foreground: oklch(0.2 0.03 70);
+  --secondary: oklch(0.27 0.012 70);
+  --muted: oklch(0.27 0.012 70);
+  --muted-foreground: oklch(0.74 0.02 80);
+  --accent: oklch(0.33 0.02 70);
+  --border: oklch(0.9 0.04 85 / 10%);
+  --input: oklch(0.9 0.04 85 / 14%);
+  --surface-header: oklch(0.14 0.008 70);
+  --surface-toolbar: oklch(0.22 0.01 70);
+  --primary-edge: oklch(0.55 0.12 65);
+  --secondary-edge: oklch(0.17 0.01 70);
+  --tile-active: oklch(0.32 0.05 80);
+  --gold-glow: oklch(0.85 0.16 85);
+  --chart-grid: oklch(0.6 0.04 80 / 40%);
+  --chart-cursor: oklch(0.8 0.14 82 / 70%);
+  --eval-white: oklch(0.94 0.012 85);
+  --eval-black: oklch(0.25 0.008 70);
+  --board-lastmove: oklch(0.85 0.14 90 / 0.5);
+  --cls-genius: oklch(0.78 0.15 80 / 0.7);
+  --cls-great: oklch(0.58 0.15 255 / 0.65);
+  --brilliant-accent: oklch(0.86 0.15 85);
+  --brilliant-surface: oklch(0.3 0.06 80);
+  --dot-genius: oklch(0.82 0.16 82); --dot-great: oklch(0.65 0.15 255); --dot-mistake: oklch(0.75 0.16 60);
+  --dot-miss: oklch(0.65 0.2 20); --dot-blunder: oklch(0.6 0.22 25);
+  --tx-genius: oklch(0.85 0.15 85); --tx-great: oklch(0.72 0.13 255); --tx-best: oklch(0.75 0.15 150); --tx-excellent: oklch(0.78 0.14 140);
+  --tx-good: oklch(0.78 0.1 135); --tx-book: oklch(0.75 0.07 70); --tx-inaccuracy: oklch(0.85 0.15 95); --tx-mistake: oklch(0.78 0.16 60);
+  --tx-miss: oklch(0.7 0.18 20); --tx-blunder: oklch(0.68 0.2 25);
+}
+[data-board-theme="stone"] { --board-light: oklch(0.88 0.012 80); --board-dark: oklch(0.6 0.02 70); }
+[data-board-theme="walnut"] { --board-light: oklch(0.87 0.05 80); --board-dark: oklch(0.58 0.08 55); }
+[data-board-theme="emerald"] { --board-light: oklch(0.93 0.03 110); --board-dark: oklch(0.56 0.09 140); }
+[data-board-theme="marble"] { --board-light: oklch(0.95 0.005 260); --board-dark: oklch(0.63 0.03 280); }
+.app-header { border-bottom-color: oklch(0.8 0.14 82 / 25%); }
+
+/* Tactile 3D buttons: visible edge, presses down on click. */
+.button-raised { box-shadow: 0 4px 0 var(--primary-edge), inset 0 1px 0 oklch(1 0 0 / 30%); background-image: linear-gradient(to bottom, oklch(1 0 0 / 12%), transparent); }
+.button-raised-soft { box-shadow: 0 3px 0 var(--secondary-edge), inset 0 1px 0 oklch(1 0 0 / 7%); transition: transform 120ms, box-shadow 120ms, background 120ms; }
+.button-raised-soft:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--secondary-edge); }
+.button-tile { border: 1px solid var(--border); box-shadow: 0 4px 0 var(--secondary-edge); transition: transform 120ms, box-shadow 120ms, background 120ms; }
+.button-tile:hover { background: var(--accent); }
+.button-tile:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--secondary-edge); }
+.button-tile[aria-selected="true"] { background: var(--tile-active); border-color: var(--primary); color: var(--primary); box-shadow: 0 4px 0 var(--primary-edge); }
+.source-tiles, .source-tabs { padding-bottom: 6px; }
+.source-tabs [role="tab"].source-tile { opacity: 1; border-radius: 10px; border-bottom-width: 1px; }
+.source-tile svg, .source-tile img { width: 22px !important; height: 22px !important; }
+.playback-toolbar { border-radius: 10px; }
+.playback-toolbar button { box-shadow: 0 2px 0 var(--secondary-edge); }
+.playback-toolbar button:active:not(:disabled) { transform: translateY(2px); box-shadow: none; }
+
+/* Move list with piece figurines and classification tints. */
+.piece-glyph > svg, .piece-glyph > img { width: 100%; height: 100%; display: block; }
+.position-symbol { width: 40px; height: 40px; display: grid; place-items: center; }
+.move-cell { border-radius: 6px; }
+.move-cell[aria-current="step"] { background: var(--tile-active); color: var(--foreground); border-left-color: var(--primary); }
+.cls-row-genius span { color: var(--tx-genius); font-weight: 700; }
+.cls-row-great span { color: var(--tx-great); font-weight: 700; }
+.cls-row-blunder span { color: var(--tx-blunder); }
+.cls-row-mistake span { color: var(--tx-mistake); }
+.cls-row-miss span { color: var(--tx-miss); }
+.cls-row-inaccuracy span { color: var(--tx-inaccuracy); }
+.verdict-label { font-weight: 700; }
+.cls-text-genius { color: var(--tx-genius); }
+.cls-text-great { color: var(--tx-great); }
+.cls-text-best { color: var(--tx-best); }
+.cls-text-excellent { color: var(--tx-excellent); }
+.cls-text-good { color: var(--tx-good); }
+.cls-text-book { color: var(--tx-book); }
+.cls-text-inaccuracy { color: var(--tx-inaccuracy); }
+.cls-text-mistake { color: var(--tx-mistake); }
+.cls-text-miss { color: var(--tx-miss); }
+.cls-text-blunder { color: var(--tx-blunder); }
+.great-verdict { background: oklch(0.28 0.05 255); }
+.brilliant-verdict { position: relative; overflow: hidden; background: linear-gradient(110deg, var(--brilliant-surface), oklch(0.24 0.03 70)); box-shadow: 0 0 0 1px oklch(0.8 0.14 82 / 40%), 0 0 24px oklch(0.8 0.14 82 / 20%); }
+.brilliant-verdict::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, oklch(1 0.05 90 / 35%) 50%, transparent 70%); transform: translateX(-100%); animation: gold-sheen 1.1s 150ms ease-out both; pointer-events: none; }
+@keyframes gold-sheen { to { transform: translateX(100%); } }
+
+/* Genius burst on the board square. */
+.genius-burst > span { position: absolute; left: 50%; top: 50%; }
+.genius-glow { width: 220%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; background: radial-gradient(circle, oklch(0.9 0.16 88 / 75%), oklch(0.85 0.16 80 / 25%) 45%, transparent 70%); animation: genius-glow 1.3s ease-out both; }
+.genius-rays { width: 320%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; background: repeating-conic-gradient(oklch(0.92 0.15 90 / 55%) 0 6deg, transparent 6deg 30deg); mask: radial-gradient(circle, transparent 18%, black 30%, transparent 70%); animation: genius-rays 1.4s ease-out both; }
+.genius-spark { width: 9%; aspect-ratio: 1; margin: -4.5% 0 0 -4.5%; border-radius: 50%; background: var(--gold-glow); box-shadow: 0 0 8px var(--gold-glow); animation: genius-spark 900ms cubic-bezier(.15,.7,.3,1) both; }
+@keyframes genius-glow { 0% { opacity: 0; scale: .2; } 30% { opacity: 1; scale: 1; } 100% { opacity: 0; scale: 1.3; } }
+@keyframes genius-rays { 0% { opacity: 0; rotate: -40deg; scale: .4; } 35% { opacity: 1; } 100% { opacity: 0; rotate: 50deg; scale: 1.2; } }
+@keyframes genius-spark { 0% { transform: rotate(var(--a)) translateY(0) scale(1.4); opacity: 1; } 100% { transform: rotate(var(--a)) translateY(calc(var(--d) * -4)) scale(0); opacity: 0; } }
+.brilliant-icon { animation: genius-pop 700ms cubic-bezier(.2,.9,.3,1.4) both; }
+@keyframes genius-pop { 0% { transform: scale(0) rotate(-120deg); } 60% { transform: scale(1.35) rotate(10deg); filter: drop-shadow(0 0 10px var(--gold-glow)); } 100% { transform: scale(1) rotate(0); filter: drop-shadow(0 0 4px var(--gold-glow)); } }
+
+/* Evaluation chart: borderless, rounded, with round classification dots. */
+.evaluation-chart { border-top: 0; }
+.eval-plot { border-radius: 10px; height: 140px; }
+.eval-plot-wrap { border-radius: 10px; overflow: hidden; }
+.eval-chip { color: var(--primary-foreground); background: var(--primary); padding: 1px 6px; border-radius: 6px; }
+.eval-mark { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; box-shadow: 0 0 0 2px var(--eval-black); cursor: pointer; }
+.eval-cursor-dot { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 0 3px oklch(0.8 0.14 82 / 35%); pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .genius-burst, .brilliant-verdict::after { display: none; } .brilliant-icon { animation: none; } }

@@ -1,14 +1,15 @@
 import { useRef, useState } from "react";
-import { FileText, Search, Upload, Play, LoaderCircle, ArrowDownToLine } from "lucide-react";
+import { FileText, Search, Upload, Play, LoaderCircle, ArrowDownToLine, Swords } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fetchChessComGames, fetchLichessGames, type RemoteGame } from "@/lib/chess/importers";
 import { PlatformLogo, PlayerAvatar, type Platform } from "./PlayerAvatar";
 
-type Tab = "pgn" | Platform;
-export function GameImporter({ pgn, setPgn, onLoad, sample }: {
-  pgn: string; setPgn: (s: string) => void; onLoad: (pgn: string, platform?: Platform) => void; sample: string;
+export type ImportTab = "pgn" | Platform | "new";
+type Tab = ImportTab;
+export function GameImporter({ pgn, setPgn, onLoad, sample, onNewGame, initialTab = "pgn" }: {
+  pgn: string; setPgn: (s: string) => void; onLoad: (pgn: string, platform?: Platform) => void; sample: string; onNewGame: () => void; initialTab?: Tab;
 }) {
-  const [tab, setTab] = useState<Tab>("pgn");
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [user, setUser] = useState("");
   const [games, setGames] = useState<RemoteGame[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -25,14 +26,14 @@ export function GameImporter({ pgn, setPgn, onLoad, sample }: {
     finally { if (id === request.current) setLoading(false); }
   };
   return <section className="game-importer">
-    <div className="source-tabs mt-3 grid grid-cols-3 gap-1 border-b border-border pb-2" role="tablist" aria-label="Game source">
-      {([['pgn', 'PGN'], ['chesscom', 'Chess.com'], ['lichess', 'Lichess']] as const).map(([key, label]) =>
-        <Button key={key} role="tab" aria-selected={tab === key} variant={tab === key ? "secondary" : "ghost"} className="min-w-0 gap-1.5 px-1 text-xs sm:text-sm"
+    <div className="source-tabs mt-3 grid grid-cols-4 gap-2" role="tablist" aria-label="Game source">
+      {([['pgn', 'PGN'], ['chesscom', 'Chess.com'], ['lichess', 'Lichess'], ['new', 'New game']] as const).map(([key, label]) =>
+        <Button key={key} role="tab" aria-selected={tab === key} variant="tile" className="source-tile h-auto min-w-0 flex-col gap-1.5 px-1 py-3 text-[11px] sm:text-xs"
           onClick={() => { ++request.current; setTab(key); setGames(null); setErr(null); setLoading(false); }}>
-          {key === "pgn" ? <FileText /> : <PlatformLogo platform={key} />}{label}
+          {key === "pgn" ? <FileText /> : key === "new" ? <Swords /> : <PlatformLogo platform={key} />}<span className="truncate">{label}</span>
         </Button>)}
     </div>
-    {tab === "pgn" ? <>
+    {tab === "new" ? <div className="mt-5 text-sm"><p className="text-muted-foreground">Start from the opening position and play moves on the board yourself, then run a review.</p><Button size="lg" className="mt-4 w-full" onClick={onNewGame}><Swords />Start new game</Button></div> : tab === "pgn" ? <>
       <label className="mt-5 block text-xs font-semibold text-muted-foreground" htmlFor="game-pgn">Game notation</label>
       <textarea id="game-pgn" aria-label="PGN game" value={pgn} onChange={e => setPgn(e.target.value)} placeholder={'[White "Player 1"]\n[Black "Player 2"]\n\n1. e4 e5 2. Nf3 Nc6…'}
         className="mt-2 h-36 w-full resize-y rounded-md border border-input bg-background p-3 font-mono text-xs placeholder:text-foreground/40 focus:outline-none focus:ring-2 focus:ring-ring" />

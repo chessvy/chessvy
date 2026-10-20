@@ -10,13 +10,14 @@ import { CLASS_ICON, RESULT_ICON } from "@/lib/chess/icons";
 import { nextPlaybackPly, PLAYBACK_INTERVAL, moveSound, formatEvaluation } from "@/lib/chess/playback";
 import { ReviewAudio } from "@/lib/chess/audio";
 import { gameOutcome } from "@/lib/chess/outcome";
-import { GameImporter } from "./GameImporter";
+import { GameImporter, type ImportTab } from "./GameImporter";
 import { exportGamePgn } from "@/lib/chess/pgn";
 import { PlayerAvatar, PlatformLogo, type Platform } from "./PlayerAvatar";
 import { ReviewSummary } from "./ReviewSummary";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { BoardAppearance, PIECE_RENDERERS } from "./BoardAppearance";
 import { EvalGraph } from "./EvalGraph";
+import { ASSET } from "@/lib/asset-paths";
 import { readAppearance, type BoardTheme, type PieceSet } from "@/lib/chess/appearance";
 
 const START = new Chess().fen();
@@ -30,6 +31,7 @@ const SAMPLE = `[White "Paul Morphy"]
 
 export function ReviewWorkspace() {
   const [importOpen, setImportOpen] = useState(false);
+  const [freeBoard, setFreeBoard] = useState(false);
   const [pgn, setPgn] = useState("");
   const [moves, setMoves] = useState<Move[]>([]);
   const [headers, setHeaders] = useState<Record<string, string>>({});
@@ -47,8 +49,9 @@ export function ReviewWorkspace() {
   const cancelRef = useRef({ cancelled: false });
   const previousPly = useRef(0);
   const audioRef = useRef<ReviewAudio | null>(null);
+  const soundRef = useRef(true);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
-  const [boardTheme, setBoardTheme] = useState<BoardTheme>("jade");
+  const [boardTheme, setBoardTheme] = useState<BoardTheme>("stone");
   const [pieceSet, setPieceSet] = useState<PieceSet>("classic");
   const [depth, setDepth] = useState(ENGINE_DEPTH);
   const [showArrows, setShowArrows] = useState(true);
@@ -85,16 +88,22 @@ export function ReviewWorkspace() {
     void audio.prepare();
     const unlock = () => audio.unlock();
     window.addEventListener("pointerdown", unlock);
+    const click = (e: PointerEvent) => { if (soundRef.current && (e.target as HTMLElement)?.closest("button")) audio.click(); };
+    window.addEventListener("pointerdown", click);
     window.addEventListener("keydown", unlock);
-    return () => { window.removeEventListener("pointerdown", unlock); window.removeEventListener("keydown", unlock); audio.dispose(); audioRef.current = null; };
+    return () => { window.removeEventListener("pointerdown", unlock); window.removeEventListener("keydown", unlock); window.removeEventListener("pointerdown", click); audio.dispose(); audioRef.current = null; };
   }, []);
   useEffect(() => {
     if (ply !== previousPly.current && ply > 0 && sound) {
       const move = moves[ply - 1];
       if (move) void audioRef.current?.play(moveSound(move));
+      const cls = review?.moves[ply - 1]?.classification;
+      if (cls === "genius") audioRef.current?.genius(); else if (cls === "great") audioRef.current?.great();
     }
     previousPly.current = ply;
-  }, [ply, sound, moves]);
+  }, [ply, sound, moves, review]);
+  useEffect(() => { soundRef.current = sound; }, [sound]);
+  const startNewGame = () => { cancelRef.current.cancelled = true; setPlaying(false); setSelected(null); setPromo(null); setMoves([]); setHeaders({ White: "White", Black: "Black" }); setPlatform(undefined); setReview(null); setPartial([]); setProgress(null); setPly(0); previousPly.current = 0; setSection("review"); setFreeBoard(true); setImportOpen(false); };
   const reviewAnother = () => {
     setImportOpen(true);
   };
@@ -115,7 +124,7 @@ export function ReviewWorkspace() {
       setMoves(r.moves); setHeaders(r.headers);
       setPlatform(source ?? (r.headers["Site"]?.includes("lichess.org") ? "lichess" : r.headers["Site"]?.includes("chess.com") ? "chesscom" : undefined));
       setReview(null); setPartial([]); setProgress(null); setPly(0); previousPly.current = 0;
-      setSection("review"); setCopied(false); setCopyError(null); setImportOpen(false);
+      setSection("review"); setCopied(false); setCopyError(null); setImportOpen(false); setFreeBoard(false);
     } catch (e) { setError((e as Error).message); }
   };
   const runReview = async () => {
@@ -177,6 +186,7 @@ export function ReviewWorkspace() {
   const files = orientation === "white" ? "abcdefgh" : "hgfedcba";
   const ranks = orientation === "white" ? "87654321" : "12345678";
   const special = analyzed?.classification === "genius" || analyzed?.classification === "great";
+  const active = moves.length > 0 || freeBoard;
   const atEnd = moves.length > 0 && ply === moves.length;
   const finalResult = atEnd ? headers["Result"] : undefined;
   const kingOutcomes = atEnd && gameOutcome(finalResult, "white") ? (["w", "b"] as const).map(color => {
@@ -188,7 +198,7 @@ export function ReviewWorkspace() {
   const bestUci = showArrows ? review?.moves[ply]?.bestMoveUci : null;
   const arrows = bestUci ? [{ startSquare: bestUci.slice(0, 2), endSquare: bestUci.slice(2, 4), color: BEST_ARROW }] : [];
 
-  return <div className={`workspace-grid ${moves.length ? "has-game" : "no-game"}`}>
+  return <div className={`workspace-grid ${active ? "has-game" : "no-game"}`}>
     <section className="board-column min-w-0" data-board-theme={boardTheme}>
       <div className="board-heading mb-4 flex items-center justify-between gap-2"><h2 className="font-display text-lg font-semibold">Analysis board</h2><Button variant="outline" size="sm" onClick={() => setAppearanceOpen(true)}><Palette />Board & pieces</Button></div>
       <PlayerTag name={orientation === "white" ? headers["Black"] : headers["White"]} fallback={orientation === "white" ? "Black" : "White"} rating={orientation === "white" ? headers["BlackElo"] : headers["WhiteElo"]} platform={platform} />
@@ -208,6 +218,7 @@ export function ReviewWorkspace() {
               <div className="absolute z-10 w-[42%]" style={{ [corner.vertical]: 0, [corner.horizontal]: 0, translate: `${corner.horizontal === "right" ? "50%" : "-50%"} ${corner.vertical === "top" ? "-50%" : "50%"}` }}>
                 <ReviewBadge classification={analyzed.classification} special={special} />
               </div>
+              {analyzed.classification === "genius" && <GeniusBurst />}
             </div>
           </div>}
           {kingOutcomes.length > 0 && <div key={`kings-${orientation}`} className="pointer-events-none absolute inset-0 grid grid-cols-8 grid-rows-8">
@@ -235,12 +246,12 @@ export function ReviewWorkspace() {
       </div>
       {review && ply === moves.length && gameOutcome(headers["Result"], orientation) && <div key={`ending-${orientation}`} role="status" className="badge-pop mt-3 flex items-center justify-center gap-3"><img className="h-8 w-8" src={RESULT_ICON[gameOutcome(headers["Result"], orientation) ?? "draw"]} alt="" /><span className="text-sm font-medium">{headers["Result"] === "1/2-1/2" ? "Draw" : `${headers[headers["Result"] === "1-0" ? "White" : "Black"] ?? (headers["Result"] === "1-0" ? "White" : "Black")} wins`}</span></div>}
       <p className="mt-2 text-center text-xs text-foreground/60">{ply} / {moves.length} {last ? `· ${last.san}` : ""}</p>
-      {!!moves.length && <EvalGraph evals={evals} total={moves.length + 1} ply={ply} onPick={jump} />}
+      {!!moves.length && <EvalGraph evals={evals} total={moves.length + 1} ply={ply} onPick={jump} marks={review?.moves.map(m => m.classification)} />}
     </section>
     <aside className="review-sidebar min-w-0">
       <section className="review-panel-content">
-        <div className="flex items-center justify-between gap-2"><h1 className="font-display text-xl font-bold">{moves.length ? "Game Review" : "Import a game"}</h1>{!!moves.length && <div className="flex items-center gap-2"><span className="review-status text-xs text-foreground">{progress ? "Analyzing" : review ? "Complete" : `Depth ${depth}`}</span><IconControl label="Import a game" onClick={reviewAnother}><Plus /></IconControl></div>}</div>
-        {!!moves.length && <div role="tablist" aria-label="Analysis sections" className="analysis-tabs mt-3 grid grid-cols-3 border-b border-border pb-2">
+        <div className="flex items-center justify-between gap-2"><h1 className="font-display text-xl font-bold">{active ? "Game Review" : "Start a review"}</h1>{active && <div className="flex items-center gap-2"><span className="review-status text-xs text-foreground">{progress ? "Analyzing" : review ? "Complete" : `Depth ${depth}`}</span><IconControl label="Import a game" onClick={reviewAnother}><Plus /></IconControl></div>}</div>
+        {active && <div role="tablist" aria-label="Analysis sections" className="analysis-tabs mt-3 grid grid-cols-3 border-b border-border pb-2">
           {(["review", "insights", "report"] as const).map(tab => <Button key={tab} role="tab" aria-selected={section === tab} aria-controls="analysis-panel" variant={section === tab ? "secondary" : "ghost"} onClick={() => setSection(tab)} className="capitalize">{tab}</Button>)}
         </div>}
         {review && section === "review" && <ReviewSummary review={review} />}
@@ -250,8 +261,8 @@ export function ReviewWorkspace() {
         </div>}
         {progress && <div className="mt-3" role="status"><div className="h-1 overflow-hidden rounded-sm bg-secondary"><div className="h-full bg-primary transition-all" style={{ width: `${progress.done / progress.total * 100}%` }} /></div><p className="mt-2 text-xs text-foreground/50">Depth {depth} · {progress.done === progress.total ? "Verifying played moves…" : `${progress.done}/${progress.total} positions`}</p></div>}
         <div id="analysis-panel" role="tabpanel">
-        {section === "review" && !!moves.length && !analyzed && <div className="position-verdict mt-4 flex items-center gap-3"><span className="position-symbol" aria-hidden>♟</span><div><p className="text-sm font-semibold">{ply === 0 ? "Starting position" : last?.san}</p><p className="mt-1 text-xs text-foreground/70">{progress ? "Analyzing your game…" : review ? "Game ready" : `${headers["White"] ?? "White"} vs ${headers["Black"] ?? "Black"}`}</p></div></div>}
-        {section === "review" && analyzed && <div key={ply} className={`move-verdict mt-4 flex items-center gap-3 border-l-2 border-primary pl-3 ${analyzed.classification === "genius" ? "brilliant-verdict" : ""}`}><div className="h-9 w-9 shrink-0"><ReviewBadge classification={analyzed.classification} special={special} /></div><div className="min-w-0 text-sm"><p className="font-semibold">{analyzed.san} · {CLASS_LABEL[analyzed.classification]}</p>{analyzed.bestMoveSan && analyzed.bestMoveSan !== analyzed.san && <p className="mt-1 text-xs text-foreground/60">Best move: {analyzed.bestMoveSan}</p>}</div></div>}
+        {section === "review" && active && !analyzed && <div className="position-verdict mt-4 flex items-center gap-3"><span className="position-symbol" aria-hidden>{last ? <PieceGlyph set={pieceSet} code={last.color + last.piece.toUpperCase()} /> : <img src={ASSET.logo} alt="" className="h-full w-full object-contain" />}</span><div><p className="text-sm font-semibold">{ply === 0 ? "Starting position" : last?.san}</p><p className="mt-1 text-xs text-foreground/70">{progress ? "Analyzing your game…" : review ? "Game ready" : `${headers["White"] ?? "White"} vs ${headers["Black"] ?? "Black"}`}</p></div></div>}
+        {section === "review" && analyzed && <div key={ply} className={`move-verdict mt-4 flex items-center gap-3 border-l-4 pl-3 ${analyzed.classification === "genius" ? "brilliant-verdict" : analyzed.classification === "great" ? "great-verdict" : ""}`} style={{ borderLeftColor: `var(--cls-${analyzed.classification})` }}><div className="h-9 w-9 shrink-0"><ReviewBadge classification={analyzed.classification} special={special} /></div><div className="min-w-0 text-sm"><p className="flex items-center gap-1.5 font-semibold">{last && <PieceGlyph set={pieceSet} code={last.color + last.piece.toUpperCase()} className="h-5 w-5" />}<span>{analyzed.san}</span><span className={`verdict-label cls-text-${analyzed.classification}`}>{CLASS_LABEL[analyzed.classification]}</span></p>{analyzed.bestMoveSan && analyzed.bestMoveSan !== analyzed.san && <p className="mt-1 text-xs text-foreground/60">Best move: {analyzed.bestMoveSan}</p>}</div></div>}
         {section === "review" && nextCritical && <Button variant="ghost" className="mt-3 w-full justify-start" onClick={() => jump(nextCritical.ply)}><Flag />Next key moment</Button>}
         {section !== "review" && !review && <p className="mt-4 text-sm text-foreground/50">{progress ? "Analysis in progress…" : "No game analysis yet."}</p>}
         {section === "insights" && review && <><div className="mt-4 grid grid-cols-2 divide-x divide-border border-y border-border py-3"><Stat label="White accuracy" value={review.accuracy.white} performance={review.performance.white} /><Stat label="Black accuracy" value={review.accuracy.black} performance={review.performance.black} /></div><div className="mt-4 space-y-2">{Object.entries(CLASS_LABEL).map(([key, label]) => { const count = review.moves.filter(m => m.classification === key).length; return count ? <div key={key} className="flex items-center gap-2 text-sm"><img src={CLASS_ICON[key as keyof typeof CLASS_ICON]} alt="" className="h-5 w-5" /><span className="flex-1">{label}</span><span className="tabular-nums">{count}</span></div> : null; })}</div></>}
@@ -259,9 +270,9 @@ export function ReviewWorkspace() {
         </div>
         {error && <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>}
       </section>
-      {!moves.length && <div className="empty-import"><GameImporter pgn={pgn} setPgn={setPgn} onLoad={load} sample={SAMPLE} /></div>}
-      {!!moves.length && <section className="moves-section border-t border-border"><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 className="font-display font-semibold">Moves <span className="ml-2 text-xs font-normal text-foreground/40">{headers["Result"] ?? "*"}</span></h2><div className="flex items-center gap-1"><IconControl label={copied ? "Copied PGN" : "Copy PGN"} onClick={copyPgn}>{copied ? <Check /> : <Copy />}</IconControl><IconControl label="Download PGN" onClick={downloadPgn}><Download /></IconControl></div></div><span role="status" className="sr-only">{copied ? "PGN copied to clipboard" : ""}</span>{copyError && <p role="alert" className="mb-2 text-xs text-destructive">{copyError}</p>}<ol className="grid max-h-80 grid-cols-[2rem_1fr_1fr] gap-y-1 overflow-y-auto text-sm">{Array.from({ length: Math.ceil(moves.length / 2) }).map((_, r) => <MoveRow key={r} r={r} moves={moves} review={review} ply={ply} setPly={jump} />)}</ol></section>}
-      {!!moves.length && <div className="review-footer border-t border-border"><Button variant="secondary" className="w-full" onClick={reviewAnother}><Plus />Review another game</Button></div>}
+      {!active && <div className="empty-import"><GameImporter pgn={pgn} setPgn={setPgn} onLoad={load} sample={SAMPLE} onNewGame={startNewGame} /></div>}
+      {active && <section className="moves-section border-t border-border"><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 className="font-display font-semibold">Moves <span className="ml-2 text-xs font-normal text-foreground/40">{headers["Result"] ?? "*"}</span></h2><div className="flex items-center gap-1"><IconControl label={copied ? "Copied PGN" : "Copy PGN"} onClick={copyPgn}>{copied ? <Check /> : <Copy />}</IconControl><IconControl label="Download PGN" onClick={downloadPgn}><Download /></IconControl></div></div><span role="status" className="sr-only">{copied ? "PGN copied to clipboard" : ""}</span>{copyError && <p role="alert" className="mb-2 text-xs text-destructive">{copyError}</p>}<ol className="grid max-h-80 grid-cols-[2rem_1fr_1fr] gap-y-1 overflow-y-auto text-sm">{Array.from({ length: Math.ceil(moves.length / 2) }).map((_, r) => <MoveRow key={r} r={r} moves={moves} review={review} ply={ply} setPly={jump} pieceSet={pieceSet} />)}</ol></section>}
+      {active && <div className="review-footer border-t border-border"><Button variant="secondary" className="w-full" onClick={reviewAnother}><Plus />Review another game</Button></div>}
     </aside>
     <BoardAppearance open={appearanceOpen} onOpenChange={setAppearanceOpen} board={boardTheme} pieceSet={pieceSet} onBoard={setBoardTheme} onPieces={setPieceSet} />
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}><DialogContent aria-describedby={undefined} className="text-sm"><DialogTitle>Review settings</DialogTitle><div className="space-y-5 pt-3">
@@ -271,7 +282,7 @@ export function ReviewWorkspace() {
         <label className="flex items-center justify-between"><span>Best-move arrows</span><input type="checkbox" checked={showArrows} onChange={e => setShowArrows(e.target.checked)} className="h-4 w-4 accent-primary" /></label>
         <label className="flex items-center justify-between"><span>Evaluation bar</span><input type="checkbox" checked={showEvalBar} onChange={e => setShowEvalBar(e.target.checked)} className="h-4 w-4 accent-primary" /></label>
       </div></DialogContent></Dialog>
-    <Dialog open={importOpen} onOpenChange={setImportOpen}><DialogContent aria-describedby={undefined} className="import-dialog max-h-[85dvh] overflow-y-auto"><DialogTitle>Import a game</DialogTitle><GameImporter pgn={pgn} setPgn={setPgn} onLoad={load} sample={SAMPLE} />{error && <p role="alert" className="text-sm text-foreground">{error}</p>}</DialogContent></Dialog>
+    <Dialog open={importOpen} onOpenChange={setImportOpen}><DialogContent aria-describedby={undefined} className="import-dialog max-h-[85dvh] overflow-y-auto"><DialogTitle>Review a game</DialogTitle><GameImporter pgn={pgn} setPgn={setPgn} onLoad={load} sample={SAMPLE} onNewGame={startNewGame} />{error && <p role="alert" className="text-sm text-foreground">{error}</p>}</DialogContent></Dialog>
   </div>;
 }
 function IconControl({ label, onClick, children, disabled, active }: { label: string; onClick: () => void; children: ReactNode; disabled?: boolean; active?: boolean }) {
@@ -281,8 +292,12 @@ function PlayerTag({ name, fallback, rating, platform }: { name?: string | undef
   const display = name && name !== "?" ? name : fallback;
   return <div className="player-tag grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5"><PlayerAvatar name={display} platform={platform} /><div className="min-w-0"><p className="truncate text-sm font-medium">{display}</p>{rating && rating !== "?" && <p className="text-xs text-foreground/50">{rating}</p>}</div>{platform && <PlatformLogo platform={platform} />}</div>;
 }
-function MoveRow({ r, moves, review, ply, setPly }: { r: number; moves: Move[]; review: GameReview | null; ply: number; setPly: (n: number) => void }) {
-  const cell = (i: number) => { const m = moves[i]; if (!m) return <span />; const a = review?.moves[i]; return <Button variant={ply === i + 1 ? "secondary" : "ghost"} aria-current={ply === i + 1 ? "step" : undefined} onClick={() => setPly(i + 1)} className="move-cell h-9 justify-start gap-1.5 px-2">{a && <img src={CLASS_ICON[a.classification]} alt={CLASS_LABEL[a.classification]} className="h-4 w-4" />}{m.san}</Button>; };
+function PieceGlyph({ set, code, className = "h-full w-full" }: { set: PieceSet; code: string; className?: string }) {
+  const render = PIECE_RENDERERS[set][code];
+  return <span className={`piece-glyph inline-block shrink-0 ${className}`}>{render?.()}</span>;
+}
+function MoveRow({ r, moves, review, ply, setPly, pieceSet }: { r: number; moves: Move[]; review: GameReview | null; ply: number; setPly: (n: number) => void; pieceSet: PieceSet }) {
+  const cell = (i: number) => { const m = moves[i]; if (!m) return <span />; const a = review?.moves[i]; return <Button variant={ply === i + 1 ? "secondary" : "ghost"} aria-current={ply === i + 1 ? "step" : undefined} onClick={() => setPly(i + 1)} className={`move-cell h-9 justify-start gap-1 px-1.5 ${a ? `cls-row-${a.classification}` : ""}`}><PieceGlyph set={pieceSet} code={m.color + m.piece.toUpperCase()} className="h-5 w-5" /><span>{m.piece === "p" ? m.san : m.san.replace(/^[KQRBN]/, "")}</span>{a && <img src={CLASS_ICON[a.classification]} alt={CLASS_LABEL[a.classification]} className="ml-auto h-4 w-4" />}</Button>; };
   return <><span className="self-center text-xs text-foreground/40">{r + 1}.</span>{cell(r * 2)}{cell(r * 2 + 1)}</>;
 }
 function Stat({ label, value, performance }: { label: string; value: number | null; performance: number | null }) { return <div className="px-3"><p className="text-xs text-foreground/50">{label}</p><p className="mt-1 font-display text-2xl font-semibold">{value === null ? "—" : `${value.toFixed(1)}%`}</p><p className="mt-2 text-xs text-foreground/60" title="Game-only heuristic, not a calibrated Elo rating">Estimated play: {performance === null ? "—" : `~${performance} Elo`}</p></div>; }
@@ -296,4 +311,12 @@ function ReviewBadge({ classification, special }: { classification: keyof typeof
     {special && <span className="special-ring" />}
     <img src={CLASS_ICON[classification]} alt={CLASS_LABEL[classification]} title={CLASS_LABEL[classification]} className={`relative block h-full w-full badge-pop ${special ? "special-badge" : ""}`} />
   </span>;
+}
+
+function GeniusBurst() {
+  const sparks = useMemo(() => Array.from({ length: 14 }, (_, i) => ({ angle: i / 14 * 360, dist: 70 + (i % 3) * 25, delay: (i % 4) * 0.04 })), []);
+  return <div aria-hidden className="genius-burst pointer-events-none absolute inset-0 z-20">
+    <span className="genius-glow" /><span className="genius-rays" />
+    {sparks.map((p, i) => <span key={i} className="genius-spark" style={{ "--a": `${p.angle}deg`, "--d": `${p.dist}%`, animationDelay: `${p.delay}s` } as React.CSSProperties} />)}
+  </div>;
 }
