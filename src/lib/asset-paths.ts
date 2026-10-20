@@ -18,4 +18,5 @@ export const ASSET = {
   sounds: { move: "/sounds/move.mp3", capture: "/sounds/capture.mp3" },
   platforms: { lichess: "/platforms/lichess.svg", chesscom: "/platforms/chesscom.png" },
   logo: "/brand/chessvy-logo.png",
+  piece: (set: "merida" | "alpha", piece: string) => `/pieces/${set}/${piece}.svg`,
 } as const;

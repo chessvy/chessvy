@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { FileText, Search, Upload, FlaskConical, LoaderCircle, ArrowDownToLine } from "lucide-react";
+import { FileText, Search, Upload, Play, LoaderCircle, ArrowDownToLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fetchChessComGames, fetchLichessGames, type RemoteGame } from "@/lib/chess/importers";
 import { PlatformLogo, PlayerAvatar, type Platform } from "./PlayerAvatar";
@@ -24,22 +24,22 @@ export function GameImporter({ pgn, setPgn, onLoad, sample }: {
     } catch (e) { if (id === request.current) setErr((e as Error).message); }
     finally { if (id === request.current) setLoading(false); }
   };
-  return <section className="game-importer border-t border-border pt-5">
-    <h2 className="font-display text-lg font-semibold">Import a game</h2>
+  return <section className="game-importer">
     <div className="source-tabs mt-3 grid grid-cols-3 gap-1 border-b border-border pb-2" role="tablist" aria-label="Game source">
-      {([['pgn', 'PGN'], ['lichess', 'Lichess'], ['chesscom', 'Chess.com']] as const).map(([key, label]) =>
+      {([['pgn', 'PGN'], ['chesscom', 'Chess.com'], ['lichess', 'Lichess']] as const).map(([key, label]) =>
         <Button key={key} role="tab" aria-selected={tab === key} variant={tab === key ? "secondary" : "ghost"} className="min-w-0 gap-1.5 px-1 text-xs sm:text-sm"
           onClick={() => { ++request.current; setTab(key); setGames(null); setErr(null); setLoading(false); }}>
           {key === "pgn" ? <FileText /> : <PlatformLogo platform={key} />}{label}
         </Button>)}
     </div>
     {tab === "pgn" ? <>
-      <textarea aria-label="PGN game" value={pgn} onChange={e => setPgn(e.target.value)} placeholder="Paste PGN here"
-        className="mt-3 h-28 w-full resize-y rounded-md border border-input bg-background p-3 font-mono text-xs placeholder:text-foreground/40 focus:outline-none focus:ring-2 focus:ring-ring" />
+      <label className="mt-5 block text-xs font-semibold text-muted-foreground" htmlFor="game-pgn">Game notation</label>
+      <textarea id="game-pgn" aria-label="PGN game" value={pgn} onChange={e => setPgn(e.target.value)} placeholder={'[White "Player 1"]\n[Black "Player 2"]\n\n1. e4 e5 2. Nf3 Nc6…'}
+        className="mt-2 h-36 w-full resize-y rounded-md border border-input bg-background p-3 font-mono text-xs placeholder:text-foreground/40 focus:outline-none focus:ring-2 focus:ring-ring" />
       <div className="mt-3 flex items-center gap-2">
-        <Button className="flex-1" onClick={() => onLoad(pgn)} disabled={!pgn.trim()}><ArrowDownToLine />Load game</Button>
+        <Button className="flex-1" onClick={() => onLoad(pgn)} disabled={!pgn.trim()}><ArrowDownToLine />Import game</Button>
         <Button size="icon" variant="secondary" title="Upload PGN file" aria-label="Upload PGN file" onClick={() => file.current?.click()}><Upload /></Button>
-        <Button size="icon" variant="secondary" title="Try sample game" aria-label="Try sample game" onClick={() => { setPgn(sample); onLoad(sample); }}><FlaskConical /></Button>
+
         <input ref={file} type="file" accept=".pgn,text/plain" className="hidden" onChange={async e => {
           const f = e.target.files?.[0]; if (!f) return;
           try { const text = await f.text(); setPgn(text); onLoad(text); } catch { setErr("This file couldn't be read."); }
@@ -62,6 +62,7 @@ export function GameImporter({ pgn, setPgn, onLoad, sample }: {
           </Button></li>)}</ul>
       </>}
     </>}
+    <div className="sample-game mt-6 border-t border-border pt-4"><Button variant="ghost" className="w-full justify-between text-muted-foreground" aria-label="Try sample game" onClick={() => { setPgn(sample); onLoad(sample); }}><span className="text-left"><span className="block text-sm font-semibold text-foreground">The Opera Game</span><span className="block text-xs font-normal">Paul Morphy · 1858</span></span><Play /></Button></div>
     {err && <p role="alert" className="mt-3 text-sm text-destructive">{err}</p>}
   </section>;
 }
