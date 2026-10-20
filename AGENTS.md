@@ -19,3 +19,4 @@
 - Move-loss comparisons reuse a completed requested-depth MultiPV played line or use same-root restricted Stockfish searches; the graph uses independent white-perspective position scores, and complete MultiPV iterations prevent mismatched-depth comparisons.
 - Engine search promises are cached only within one Engine instance using the full FEN and all search options; failures are evicted and termination clears reuse to avoid stale scores or cross-review state.
 - Serve engine, icons, sounds and logo from public/ via src/lib/asset-paths.ts, never Lovable-hosted asset pointers, because those URLs 404 on Cloudflare Pages.
+- Keep the review summary presentational and reuse the existing review results; game import moves into a dialog after loading to keep the review workspace focused without changing chess analysis.
