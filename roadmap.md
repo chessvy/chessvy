@@ -1,25 +1,8 @@
-# Chessvy review improvements
-- [x] Apply logo-led modern palette and tactile buttons without copying Chess.com
-- [x] Simplify import and review states
-- [x] Add board and piece appearance customization
-- [x] Replace evaluation graph with a continuous full-width interactive chart
-- [x] Reshape the review interface around the board, move feedback and compact game summary
-- [x] Verify importing and navigating games on desktop and mobile
-- [x] Reuse completed same-depth searches without changing default or adjustable depth
-- [x] Test search reuse and verify a real review completes
-- [x] Finish Copy PGN, add PGN download and key-move navigation
-- [x] Correct logo proportions beside the Chessvy name
-- [x] Compare played moves at matching engine depth and validate engine results
-- [x] Check sound effect (no voice), king win/lose icons and confetti at game end
-- [x] Conservative, deeper-verified Genius classifications
-- [x] Review / Insights / Report sections with game-specific summaries
-- [x] Remove completion popup
-- [x] Engine best-move arrows and settings (engine depth, arrows, eval bar)
-- [x] Copy PGN
-- [x] Test classification rules and verify full desktop/mobile flow
-- [x] Stabilize Stockfish loading and deepen consistent analysis
-- [x] Neutral evaluation graph with classification dots
-- [x] Estimated performance and verified opening-book moves
-- [x] Preloaded move/capture/check sounds, audible checks, and small rings centered only on icons
-- [x] Supplied outcome icons, ending sound/effect, and three-second dismissible next-game prompt
-- [x] Permanent review-another-game option and end-to-end verification
+# Review quality pass
+- [ ] Audit and tighten Genius move eligibility; update concrete rule tests and run them.
+- [ ] Remove click and Great-move sounds while preserving ordinary move/capture/check audio.
+- [ ] Set default analysis depth to 15 and keep persisted user choices valid.
+- [ ] Attach the evaluation meter directly to the board and keep coordinates inside board edges.
+- [ ] Add compact mobile icon controls for analysis views and engine line; show each mover's own best move.
+- [ ] Present each move as a horizontal move-pair row and verify desktop/mobile review behavior.
+- [ ] Recheck build/test signals and end-to-end UI state; close this roadmap.
