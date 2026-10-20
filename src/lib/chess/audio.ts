@@ -1,7 +1,6 @@
-import move from "@/assets/sounds/move.mp3.asset.json";
-import capture from "@/assets/sounds/capture.mp3.asset.json";
+import { ASSET } from "@/lib/asset-paths";
 
-const urls = { move: move.url, capture: capture.url };
+const urls = { move: ASSET.sounds.move, capture: ASSET.sounds.capture };
 export type SoundKind = "move" | "capture" | "check";
 export class ReviewAudio {
   private context: AudioContext | null = null;

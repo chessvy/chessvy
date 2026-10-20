@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 import { UserRound } from "lucide-react";
-import lichess from "@/assets/platforms/lichess.svg.asset.json";
-import chesscom from "@/assets/platforms/chesscom.png.asset.json";
+import { ASSET } from "@/lib/asset-paths";
 
 export type Platform = "lichess" | "chesscom";
 const cache = new Map<string, string | null>();
 export function PlatformLogo({ platform }: { platform: Platform }) {
-  return <img src={platform === "lichess" ? lichess.url : chesscom.url} alt={platform === "lichess" ? "Lichess" : "Chess.com"} className={`h-5 w-5 shrink-0 object-contain ${platform === "lichess" ? "platform-lichess" : ""}`} />;
+  return <img src={platform === "lichess" ? ASSET.platforms.lichess : ASSET.platforms.chesscom} alt={platform === "lichess" ? "Lichess" : "Chess.com"} className={`h-5 w-5 shrink-0 object-contain ${platform === "lichess" ? "platform-lichess" : ""}`} />;
 }
 export function PlayerAvatar({ name, platform }: { name: string; platform?: Platform | undefined }) {
   const [avatar, setAvatar] = useState<string | null>(null);

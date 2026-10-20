@@ -1,8 +1,7 @@
 // App-hosted, pinned Stockfish 18 lite, single-threaded WASM.
 import { commonDepthLines, parseEngineLine } from "./engine-lines";
 import { AnalysisCache } from "./analysis-cache";
-import script from "@/assets/engine/stockfish.js.asset.json";
-import wasm from "@/assets/engine/stockfish.wasm.asset.json";
+import { ASSET } from "@/lib/asset-paths";
 
 export interface EngineLine {
   move: string; // UCI
@@ -32,12 +31,12 @@ export class Engine {
     for (let attempt = 0; attempt < 3; attempt++) {
       if (this.disposed) throw new Error("cancelled");
       try {
-        const response = await fetch(script.url, { signal: AbortSignal.timeout(60000), cache: "force-cache" });
+        const response = await fetch(ASSET.engine.script, { signal: AbortSignal.timeout(60000), cache: "force-cache" });
         if (!response.ok) throw new Error("Engine download unavailable");
         const code = await response.text();
         if (this.disposed) throw new Error("cancelled");
         this.objectUrl = URL.createObjectURL(new Blob([code], { type: "application/javascript" }));
-        this.worker = new Worker(this.objectUrl + "#" + encodeURIComponent(new URL(wasm.url, window.location.origin).href));
+        this.worker = new Worker(this.objectUrl + "#" + encodeURIComponent(new URL(ASSET.engine.wasm, window.location.origin).href));
         this.worker.onmessage = e => this.handler?.(String(e.data));
         await new Promise<void>((resolve, reject) => {
           const timer = setTimeout(() => finish(new Error("Engine startup timed out")), 90000);
