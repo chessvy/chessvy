@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Chessboard } from "react-chessboard";
 import { Chess, type Move, type Square } from "chess.js";
-import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, Play, Pause, RotateCw, Volume2, VolumeX, ScanLine, LoaderCircle, Square as Stop, Plus, Settings2, Copy, Check, Download, Flag } from "lucide-react";
+import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, Play, Pause, RotateCw, Volume2, VolumeX, ScanLine, LoaderCircle, Square as Stop, Plus, Settings2, Copy, Check, Download, Flag, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { analyzeGame, parsePgn, ENGINE_DEPTH, type GameReview } from "@/lib/chess/review";
 import { badgeCorner, screenCoords, type Orientation } from "@/lib/chess/badge";
@@ -15,6 +15,9 @@ import { exportGamePgn } from "@/lib/chess/pgn";
 import { PlayerAvatar, PlatformLogo, type Platform } from "./PlayerAvatar";
 import { ReviewSummary } from "./ReviewSummary";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { BoardAppearance, PIECE_RENDERERS } from "./BoardAppearance";
+import { EvalGraph } from "./EvalGraph";
+import { readAppearance, type BoardTheme, type PieceSet } from "@/lib/chess/appearance";
 
 const START = new Chess().fen();
 // SVG presentation attributes cannot resolve CSS variables, so the arrow colour is a literal.
@@ -44,7 +47,9 @@ export function ReviewWorkspace() {
   const cancelRef = useRef({ cancelled: false });
   const previousPly = useRef(0);
   const audioRef = useRef<ReviewAudio | null>(null);
-  const importerRef = useRef<HTMLDivElement | null>(null);
+  const [appearanceOpen, setAppearanceOpen] = useState(false);
+  const [boardTheme, setBoardTheme] = useState<BoardTheme>("jade");
+  const [pieceSet, setPieceSet] = useState<PieceSet>("classic");
   const [depth, setDepth] = useState(ENGINE_DEPTH);
   const [showArrows, setShowArrows] = useState(true);
   const [showEvalBar, setShowEvalBar] = useState(true);
@@ -53,8 +58,8 @@ export function ReviewWorkspace() {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
   const [settingsReady, setSettingsReady] = useState(false);
-  useEffect(() => { try { const v = JSON.parse(localStorage.getItem("chessvy-settings") ?? "{}"); if (typeof v.depth === "number" && Number.isFinite(v.depth)) setDepth(Math.max(12, Math.min(24, Math.round(v.depth)))); if (typeof v.arrows === "boolean") setShowArrows(v.arrows); if (typeof v.evalBar === "boolean") setShowEvalBar(v.evalBar); } catch { /* ignore */ } setSettingsReady(true); }, []);
-  useEffect(() => { if (!settingsReady) return; try { localStorage.setItem("chessvy-settings", JSON.stringify({ depth, arrows: showArrows, evalBar: showEvalBar })); } catch { /* storage unavailable */ } }, [depth, showArrows, showEvalBar, settingsReady]);
+  useEffect(() => { try { const v = JSON.parse(localStorage.getItem("chessvy-settings") ?? "{}"); const appearance = readAppearance(v); setBoardTheme(appearance.board); setPieceSet(appearance.pieces); if (typeof v.depth === "number" && Number.isFinite(v.depth)) setDepth(Math.max(12, Math.min(24, Math.round(v.depth)))); if (typeof v.arrows === "boolean") setShowArrows(v.arrows); if (typeof v.evalBar === "boolean") setShowEvalBar(v.evalBar); } catch { /* ignore */ } setSettingsReady(true); }, []);
+  useEffect(() => { if (!settingsReady) return; try { localStorage.setItem("chessvy-settings", JSON.stringify({ depth, arrows: showArrows, evalBar: showEvalBar, board: boardTheme, pieces: pieceSet })); } catch { /* storage unavailable */ } }, [depth, showArrows, showEvalBar, boardTheme, pieceSet, settingsReady]);
   useEffect(() => { if (!copied) return; const timer = setTimeout(() => setCopied(false), 2000); return () => clearTimeout(timer); }, [copied]);
   const exportedPgn = useMemo(() => exportGamePgn(moves, headers), [moves, headers]);
   const copyPgn = async () => {
@@ -183,8 +188,9 @@ export function ReviewWorkspace() {
   const bestUci = showArrows ? review?.moves[ply]?.bestMoveUci : null;
   const arrows = bestUci ? [{ startSquare: bestUci.slice(0, 2), endSquare: bestUci.slice(2, 4), color: BEST_ARROW }] : [];
 
-  return <div className="workspace-grid">
-    <section className="board-column min-w-0">
+  return <div className={`workspace-grid ${moves.length ? "has-game" : "no-game"}`}>
+    <section className="board-column min-w-0" data-board-theme={boardTheme}>
+      <div className="board-heading mb-4 flex items-center justify-between gap-2"><h2 className="font-display text-lg font-semibold">Analysis board</h2><Button variant="outline" size="sm" onClick={() => setAppearanceOpen(true)}><Palette />Board & pieces</Button></div>
       <PlayerTag name={orientation === "white" ? headers["Black"] : headers["White"]} fallback={orientation === "white" ? "Black" : "White"} rating={orientation === "white" ? headers["BlackElo"] : headers["WhiteElo"]} platform={platform} />
       <div className={`board-layout mt-2 ${showEvalBar ? "" : "no-eval"}`}>
         {showEvalBar && <div className="eval-bar relative overflow-hidden rounded-sm bg-eval-black" role="meter" aria-label="Evaluation bar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={whitePct} aria-valuetext={formatEvaluation(evalCp)}>
@@ -193,7 +199,7 @@ export function ReviewWorkspace() {
         </div>}
         <div className="rank-labels flex flex-col">{[...ranks].map(rank => <span key={rank} className="grid flex-1 place-items-center text-foreground/50">{rank}</span>)}</div>
         <div className="board-frame relative aspect-square min-w-0">
-          <Chessboard options={{ id: "chessvy-board", position: fen, boardOrientation: orientation, squareStyles, showNotation: false, arrows, allowDrawingArrows: true,
+          <Chessboard options={{ id: "chessvy-board", position: fen, pieces: PIECE_RENDERERS[pieceSet], boardOrientation: orientation, squareStyles, showNotation: false, arrows, allowDrawingArrows: true,
             lightSquareStyle: { backgroundColor: "var(--board-light)" }, darkSquareStyle: { backgroundColor: "var(--board-dark)" },
             onPieceDrop: ({ sourceSquare, targetSquare }) => targetSquare ? playMove(sourceSquare as Square, targetSquare as Square) : false,
             onSquareClick: ({ square }) => { const sq = square as Square; if (selected && selected !== sq && playMove(selected, sq)) return; const p = game.get(sq); setSelected(p && p.color === game.turn() ? sq : null); }, animationDurationInMs: 180 }} />
@@ -227,28 +233,21 @@ export function ReviewWorkspace() {
         <div className="flex"><IconControl label={sound ? "Mute sounds" : "Enable sounds"} onClick={() => { if (sound) audioRef.current?.stop(); setSound(!sound); }}>{sound ? <Volume2 /> : <VolumeX />}</IconControl>
         <IconControl label="Settings" active={settingsOpen} onClick={() => setSettingsOpen(o => !o)}><Settings2 /></IconControl></div>
       </div>
-      {settingsOpen && <div className="mt-3 space-y-3 rounded-md border border-border bg-card p-4 text-sm">
-        <label className="block"><span className="flex justify-between"><span>Engine strength (depth)</span><span className="font-semibold">{depth}</span></span>
-          <input type="range" min={12} max={24} value={depth} onChange={e => setDepth(Number(e.target.value))} className="mt-2 w-full accent-primary" />
-          <span className="text-xs text-foreground/50">Higher is more accurate but slower. Run review again to apply.</span></label>
-        <label className="flex items-center justify-between"><span>Best-move arrows</span><input type="checkbox" checked={showArrows} onChange={e => setShowArrows(e.target.checked)} className="h-4 w-4 accent-primary" /></label>
-        <label className="flex items-center justify-between"><span>Evaluation bar</span><input type="checkbox" checked={showEvalBar} onChange={e => setShowEvalBar(e.target.checked)} className="h-4 w-4 accent-primary" /></label>
-      </div>}
       {review && ply === moves.length && gameOutcome(headers["Result"], orientation) && <div key={`ending-${orientation}`} role="status" className="badge-pop mt-3 flex items-center justify-center gap-3"><img className="h-8 w-8" src={RESULT_ICON[gameOutcome(headers["Result"], orientation) ?? "draw"]} alt="" /><span className="text-sm font-medium">{headers["Result"] === "1/2-1/2" ? "Draw" : `${headers[headers["Result"] === "1-0" ? "White" : "Black"] ?? (headers["Result"] === "1-0" ? "White" : "Black")} wins`}</span></div>}
       <p className="mt-2 text-center text-xs text-foreground/60">{ply} / {moves.length} {last ? `· ${last.san}` : ""}</p>
-      {(progress || evals.length > 0) && <EvalGraph review={review} evals={evals} total={moves.length + 1} ply={ply} onPick={jump} />}
+      {!!moves.length && <EvalGraph evals={evals} total={moves.length + 1} ply={ply} onPick={jump} />}
     </section>
     <aside className="review-sidebar min-w-0">
       <section className="review-panel-content">
-        <div className="flex items-center justify-between gap-2"><h1 className="font-display text-xl font-bold">Game Review</h1><div className="flex items-center gap-2"><span className="review-status text-xs text-foreground">{progress ? "Analyzing" : review ? "Complete" : `Depth ${depth}`}</span><IconControl label="Import a game" onClick={reviewAnother}><Plus /></IconControl></div></div>
-        <div role="tablist" aria-label="Analysis sections" className="analysis-tabs mt-3 grid grid-cols-3 border-b border-border pb-2">
+        <div className="flex items-center justify-between gap-2"><h1 className="font-display text-xl font-bold">{moves.length ? "Game Review" : "Import a game"}</h1>{!!moves.length && <div className="flex items-center gap-2"><span className="review-status text-xs text-foreground">{progress ? "Analyzing" : review ? "Complete" : `Depth ${depth}`}</span><IconControl label="Import a game" onClick={reviewAnother}><Plus /></IconControl></div>}</div>
+        {!!moves.length && <div role="tablist" aria-label="Analysis sections" className="analysis-tabs mt-3 grid grid-cols-3 border-b border-border pb-2">
           {(["review", "insights", "report"] as const).map(tab => <Button key={tab} role="tab" aria-selected={section === tab} aria-controls="analysis-panel" variant={section === tab ? "secondary" : "ghost"} onClick={() => setSection(tab)} className="capitalize">{tab}</Button>)}
-        </div>
+        </div>}
         {review && section === "review" && <ReviewSummary review={review} />}
-        <div className="review-action mt-4 flex items-center gap-2">
+        {!!moves.length && <div className="review-action mt-4 flex items-center gap-2">
           <Button size="lg" className="review-run flex-1 font-bold" onClick={runReview} disabled={!moves.length || !!progress}>{progress ? <LoaderCircle className="animate-spin" /> : <ScanLine />}{progress ? "Reviewing…" : review ? "Run again" : "Run review"}</Button>
           {progress && <IconControl label="Stop review" onClick={() => { cancelRef.current.cancelled = true; setProgress(null); }}><Stop /></IconControl>}
-        </div>
+        </div>}
         {progress && <div className="mt-3" role="status"><div className="h-1 overflow-hidden rounded-sm bg-secondary"><div className="h-full bg-primary transition-all" style={{ width: `${progress.done / progress.total * 100}%` }} /></div><p className="mt-2 text-xs text-foreground/50">Depth {depth} · {progress.done === progress.total ? "Verifying played moves…" : `${progress.done}/${progress.total} positions`}</p></div>}
         <div id="analysis-panel" role="tabpanel">
         {section === "review" && !!moves.length && !analyzed && <div className="position-verdict mt-4 flex items-center gap-3"><span className="position-symbol" aria-hidden>♟</span><div><p className="text-sm font-semibold">{ply === 0 ? "Starting position" : last?.san}</p><p className="mt-1 text-xs text-foreground/70">{progress ? "Analyzing your game…" : review ? "Game ready" : `${headers["White"] ?? "White"} vs ${headers["Black"] ?? "Black"}`}</p></div></div>}
@@ -260,11 +259,19 @@ export function ReviewWorkspace() {
         </div>
         {error && <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>}
       </section>
-      {!moves.length && <div ref={importerRef} className="empty-import"><GameImporter pgn={pgn} setPgn={setPgn} onLoad={load} sample={SAMPLE} /></div>}
+      {!moves.length && <div className="empty-import"><GameImporter pgn={pgn} setPgn={setPgn} onLoad={load} sample={SAMPLE} /></div>}
       {!!moves.length && <section className="moves-section border-t border-border"><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 className="font-display font-semibold">Moves <span className="ml-2 text-xs font-normal text-foreground/40">{headers["Result"] ?? "*"}</span></h2><div className="flex items-center gap-1"><IconControl label={copied ? "Copied PGN" : "Copy PGN"} onClick={copyPgn}>{copied ? <Check /> : <Copy />}</IconControl><IconControl label="Download PGN" onClick={downloadPgn}><Download /></IconControl></div></div><span role="status" className="sr-only">{copied ? "PGN copied to clipboard" : ""}</span>{copyError && <p role="alert" className="mb-2 text-xs text-destructive">{copyError}</p>}<ol className="grid max-h-80 grid-cols-[2rem_1fr_1fr] gap-y-1 overflow-y-auto text-sm">{Array.from({ length: Math.ceil(moves.length / 2) }).map((_, r) => <MoveRow key={r} r={r} moves={moves} review={review} ply={ply} setPly={jump} />)}</ol></section>}
       {!!moves.length && <div className="review-footer border-t border-border"><Button variant="secondary" className="w-full" onClick={reviewAnother}><Plus />Review another game</Button></div>}
     </aside>
-    <Dialog open={importOpen} onOpenChange={setImportOpen}><DialogContent aria-describedby={undefined} className="import-dialog max-h-[85dvh] overflow-y-auto"><DialogTitle>New game</DialogTitle><GameImporter pgn={pgn} setPgn={setPgn} onLoad={load} sample={SAMPLE} />{error && <p role="alert" className="text-sm text-foreground">{error}</p>}</DialogContent></Dialog>
+    <BoardAppearance open={appearanceOpen} onOpenChange={setAppearanceOpen} board={boardTheme} pieceSet={pieceSet} onBoard={setBoardTheme} onPieces={setPieceSet} />
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}><DialogContent aria-describedby={undefined} className="text-sm"><DialogTitle>Review settings</DialogTitle><div className="space-y-5 pt-3">
+        <label className="block"><span className="flex justify-between"><span>Analysis depth</span><span className="font-semibold">{depth}</span></span>
+          <input type="range" min={12} max={24} value={depth} onChange={e => setDepth(Number(e.target.value))} className="mt-2 w-full accent-primary" />
+</label>
+        <label className="flex items-center justify-between"><span>Best-move arrows</span><input type="checkbox" checked={showArrows} onChange={e => setShowArrows(e.target.checked)} className="h-4 w-4 accent-primary" /></label>
+        <label className="flex items-center justify-between"><span>Evaluation bar</span><input type="checkbox" checked={showEvalBar} onChange={e => setShowEvalBar(e.target.checked)} className="h-4 w-4 accent-primary" /></label>
+      </div></DialogContent></Dialog>
+    <Dialog open={importOpen} onOpenChange={setImportOpen}><DialogContent aria-describedby={undefined} className="import-dialog max-h-[85dvh] overflow-y-auto"><DialogTitle>Import a game</DialogTitle><GameImporter pgn={pgn} setPgn={setPgn} onLoad={load} sample={SAMPLE} />{error && <p role="alert" className="text-sm text-foreground">{error}</p>}</DialogContent></Dialog>
   </div>;
 }
 function IconControl({ label, onClick, children, disabled, active }: { label: string; onClick: () => void; children: ReactNode; disabled?: boolean; active?: boolean }) {
@@ -279,20 +286,6 @@ function MoveRow({ r, moves, review, ply, setPly }: { r: number; moves: Move[]; 
   return <><span className="self-center text-xs text-foreground/40">{r + 1}.</span>{cell(r * 2)}{cell(r * 2 + 1)}</>;
 }
 function Stat({ label, value, performance }: { label: string; value: number | null; performance: number | null }) { return <div className="px-3"><p className="text-xs text-foreground/50">{label}</p><p className="mt-1 font-display text-2xl font-semibold">{value === null ? "—" : `${value.toFixed(1)}%`}</p><p className="mt-2 text-xs text-foreground/60" title="Game-only heuristic, not a calibrated Elo rating">Estimated play: {performance === null ? "—" : `~${performance} Elo`}</p></div>; }
-function EvalGraph({ review, evals, total, ply, onPick }: { review: GameReview | null; evals: number[]; total: number; ply: number; onPick: (n: number) => void }) {
-  const w = 360, h = 110;
-  const pts = evals.map((e, i) => ({ x: i / Math.max(1, total - 1) * w, y: h - winChance(e) / 100 * h }));
-  const last = pts.at(-1), current = pts[ply];
-  const line = pts.map((p, i) => `${i ? "L" : "M"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
-  const area = last ? `${line} L${last.x},${h} L0,${h} Z` : "";
-  const pick = (n: number) => onPick(Math.max(0, Math.min(evals.length - 1, n)));
-  return <div className="evaluation-chart mt-4"><div className="mb-2 flex justify-between text-xs text-foreground/50"><span>Evaluation</span><span>{formatEvaluation(evals[ply] ?? null)}</span></div>
-    <svg role="slider" tabIndex={evals.length ? 0 : -1} aria-label="Evaluation graph" aria-valuemin={0} aria-valuemax={Math.max(0, evals.length - 1)} aria-valuenow={Math.min(ply, Math.max(0, evals.length - 1))} viewBox={`0 0 ${w} ${h}`} className="w-full cursor-crosshair rounded-sm bg-eval-black" onClick={e => { if (!evals.length) return; const r = e.currentTarget.getBoundingClientRect(); pick(Math.round((e.clientX - r.left) / r.width * (total - 1))); }} onKeyDown={e => { if (!evals.length) return; if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); pick(ply + (e.key === "ArrowRight" ? 1 : -1)); } }}>
-      <path d={area} className="fill-eval-white" opacity={0.85} /><line x1={0} x2={w} y1={h / 2} y2={h / 2} className="stroke-foreground" opacity={0.2} strokeDasharray="3 3" />
-      <path d={line} className="stroke-foreground" fill="none" strokeWidth={2} />{current && <line x1={current.x} x2={current.x} y1={0} y2={h} className="stroke-foreground" strokeWidth={2} />}
-      {review?.moves.map((move, i) => { const point = pts[i + 1]; return point ? <circle key={i} cx={point.x} cy={point.y} r={3} style={{ fill: `var(--cls-${move.classification})` }} className="stroke-eval-black" strokeWidth={0.8}><title>{move.san} · {CLASS_LABEL[move.classification]} · {formatEvaluation(evals[i + 1] ?? null)}</title></circle> : null; })}
-    </svg><div className="mt-1 flex justify-between text-xs text-foreground/40"><span>Start</span><span>{Math.ceil((total - 1) / 2)} moves</span></div></div>;
-}
 
 function Confetti() {
   const pieces = useMemo(() => Array.from({ length: 48 }, (_, i) => ({ left: Math.random() * 100, delay: Math.random() * 0.4, dur: 1.6 + Math.random() * 1.2, drift: (Math.random() - 0.5) * 120, rot: Math.random() * 720, color: `var(--confetti-${i % 5})` })), []);
