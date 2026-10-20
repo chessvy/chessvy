@@ -365,7 +365,8 @@
 .button-tile[aria-selected="true"] { background: var(--tile-active); border-color: var(--primary); color: var(--primary); box-shadow: 0 4px 0 var(--primary-edge); }
 .source-tiles, .source-tabs { padding-bottom: 6px; }
 .source-tabs [role="tab"].source-tile { opacity: 1; border-radius: 10px; border-bottom-width: 1px; }
-.source-tile svg, .source-tile img { width: 22px !important; height: 22px !important; }
+.source-tile svg { width: 22px !important; height: 22px !important; }
+.source-tile img { height: 22px; width: 100%; max-width: 92px; }
 .playback-toolbar { border-radius: 10px; }
 .playback-toolbar button { box-shadow: 0 2px 0 var(--secondary-edge); }
 .playback-toolbar button:active:not(:disabled) { transform: translateY(2px); box-shadow: none; }
