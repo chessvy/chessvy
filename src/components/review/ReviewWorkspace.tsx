@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Chessboard } from "react-chessboard";
 import { Chess, type Move, type Square } from "chess.js";
-import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, Play, Pause, RotateCw, Volume2, VolumeX, ScanLine, LoaderCircle, Square as Stop, Plus, Settings2, Copy, Check, Download, Flag, Palette } from "lucide-react";
+import { ChevronFirst, ChevronLast, ChevronLeft, ChevronRight, Play, Pause, RotateCw, Volume2, VolumeX, ScanLine, LoaderCircle, Square as Stop, Plus, Settings2, Copy, Check, Download, Flag, Palette, Sparkles, BarChart3, FileText, Cpu, MoveUpRight, Gauge } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { analyzeGame, parsePgn, ENGINE_DEPTH, type GameReview } from "@/lib/chess/review";
 import { badgeCorner, screenCoords, type Orientation } from "@/lib/chess/badge";
@@ -57,7 +57,7 @@ export function ReviewWorkspace() {
   const [showArrows, setShowArrows] = useState(true);
   const [showEvalBar, setShowEvalBar] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [section, setSection] = useState<"review" | "insights" | "report">("review");
+  const [section, setSection] = useState<"review" | "insights" | "report" | "engine">("review");
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
   const [settingsReady, setSettingsReady] = useState(false);
@@ -101,6 +101,7 @@ export function ReviewWorkspace() {
     previousPly.current = ply;
   }, [ply, sound, moves, review]);
   useEffect(() => { soundRef.current = sound; }, [sound]);
+  useEffect(() => { document.querySelector('.move-list [aria-current="step"]')?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" }); }, [ply]);
   const startNewGame = () => { cancelRef.current.cancelled = true; setPlaying(false); setSelected(null); setPromo(null); setMoves([]); setHeaders({ White: "White", Black: "Black" }); setPlatform(undefined); setReview(null); setPartial([]); setProgress(null); setPly(0); previousPly.current = 0; setSection("review"); setFreeBoard(true); setImportOpen(false); };
   const reviewAnother = () => {
     setImportOpen(true);
@@ -193,7 +194,9 @@ export function ReviewWorkspace() {
     return king && outcome ? { color, outcome, ...screenCoords(king.square, orientation) } : null;
   }).filter(Boolean) as { color: string; outcome: "win" | "draw" | "defeat"; col: number; row: number }[] : [];
   useEffect(() => { if (kingOutcomes.length && sound) audioRef.current?.ending(); }, [kingOutcomes.length > 0]);
-  const bestUci = showArrows ? review?.moves[ply]?.bestMoveUci : null;
+  // Best move for the side that just moved (White after White's move, Black after Black's).
+  const moverReview = ply > 0 ? review?.moves[ply - 1] : review?.moves[0];
+  const bestUci = showArrows ? moverReview?.bestMoveUci : null;
   const arrows = bestUci ? [{ startSquare: bestUci.slice(0, 2), endSquare: bestUci.slice(2, 4), color: BEST_ARROW }] : [];
 
   return <div className={`workspace-grid ${active ? "has-game" : "no-game"}`}>
@@ -247,8 +250,8 @@ export function ReviewWorkspace() {
     <aside className="review-sidebar min-w-0">
       <section className="review-panel-content">
         <div className="flex items-center justify-between gap-2"><h1 className="font-display text-xl font-bold">{active ? "Game Review" : "Start a review"}</h1>{active && <div className="flex items-center gap-2"><span className="review-status text-xs text-foreground">{progress ? "Analyzing" : review ? "Complete" : `Depth ${depth}`}</span><IconControl label="Import a game" onClick={reviewAnother}><Plus /></IconControl></div>}</div>
-        {active && <div role="tablist" aria-label="Analysis sections" className="analysis-tabs mt-3 grid grid-cols-3 border-b border-border pb-2">
-          {(["review", "insights", "report"] as const).map(tab => <Button key={tab} role="tab" aria-selected={section === tab} aria-controls="analysis-panel" variant={section === tab ? "secondary" : "ghost"} onClick={() => setSection(tab)} className="capitalize">{tab}</Button>)}
+        {active && <div role="tablist" aria-label="Analysis sections" className="analysis-tabs mt-3 grid grid-cols-4 gap-1.5">
+          {([["review", "Review", Sparkles], ["insights", "Insights", BarChart3], ["report", "Report", FileText], ["engine", "Engine", Cpu]] as const).map(([tab, label, Icon]) => <Button key={tab} role="tab" aria-selected={section === tab} aria-controls="analysis-panel" variant={section === tab ? "default" : "secondary"} onClick={() => setSection(tab)} className="h-auto flex-col gap-1 py-2 text-[11px]"><Icon className="h-5 w-5" />{label}</Button>)}
         </div>}
         {review && section === "review" && <ReviewSummary review={review} />}
         {!!moves.length && <div className="review-action mt-4 flex items-center gap-2">
@@ -260,14 +263,19 @@ export function ReviewWorkspace() {
         {section === "review" && active && !analyzed && <div className="position-verdict mt-4 flex items-center gap-3"><span className="position-symbol" aria-hidden>{last ? <PieceGlyph set={pieceSet} code={last.color + last.piece.toUpperCase()} /> : <img src={ASSET.logo} alt="" className="h-full w-full object-contain" />}</span><div><p className="text-sm font-semibold">{ply === 0 ? "Starting position" : last?.san}</p><p className="mt-1 text-xs text-foreground/70">{progress ? "Analyzing your game…" : review ? "Game ready" : `${headers["White"] ?? "White"} vs ${headers["Black"] ?? "Black"}`}</p></div></div>}
         {section === "review" && analyzed && <div key={ply} className={`move-verdict mt-4 flex items-center gap-3 border-l-4 pl-3 ${analyzed.classification === "genius" ? "brilliant-verdict" : analyzed.classification === "great" ? "great-verdict" : ""}`} style={{ borderLeftColor: `var(--cls-${analyzed.classification})` }}><div className="h-9 w-9 shrink-0"><ReviewBadge classification={analyzed.classification} special={special} /></div><div className="min-w-0 text-sm"><p className="flex items-center gap-1.5 font-semibold">{last && <PieceGlyph set={pieceSet} code={last.color + last.piece.toUpperCase()} className="h-5 w-5" />}<span>{analyzed.san}</span><span className={`verdict-label cls-text-${analyzed.classification}`}>{CLASS_LABEL[analyzed.classification]}</span></p>{analyzed.bestMoveSan && analyzed.bestMoveSan !== analyzed.san && <p className="mt-1 text-xs text-foreground/60">Best move: {analyzed.bestMoveSan}</p>}</div></div>}
         {section === "review" && nextCritical && <Button variant="ghost" className="mt-3 w-full justify-start" onClick={() => jump(nextCritical.ply)}><Flag />Next key moment</Button>}
-        {section !== "review" && !review && <p className="mt-4 text-sm text-foreground/50">{progress ? "Analysis in progress…" : "No game analysis yet."}</p>}
+        {section === "engine" && active && <div className="mt-4 space-y-3">
+          <div className="flex items-center gap-3 rounded-md bg-secondary p-3"><span className={`grid h-10 min-w-14 place-items-center rounded-md px-2 font-display text-sm font-bold ${evalCp !== null && evalCp < 0 ? "bg-eval-black text-eval-white" : "bg-eval-white text-eval-black"}`}>{formatEvaluation(evalCp)}</span><div className="min-w-0"><p className="text-xs text-foreground/50">Engine evaluation · depth {depth}</p><p className="text-sm font-semibold">{evalCp === null ? "Run review to evaluate" : evalCp > 50 ? "White is better" : evalCp < -50 ? "Black is better" : "Equal position"}</p></div></div>
+          {moverReview?.bestMoveSan && <div className="flex items-center gap-3 rounded-md bg-secondary p-3"><span className="h-10 w-10 shrink-0"><PieceGlyph set={pieceSet} code={(ply > 0 ? moves[ply - 1]!.color : "w") + (moverReview.bestMoveSan.match(/^[KQRBN]/)?.[0] ?? "P")} /></span><div className="min-w-0"><p className="text-xs text-foreground/50">Best move for {(ply > 0 ? moves[ply - 1]!.color : "w") === "w" ? "White" : "Black"}</p><p className="font-display text-lg font-bold">{moverReview.bestMoveSan}{ply > 0 && moves[ply - 1]!.san === moverReview.bestMoveSan && <span className="ml-2 text-xs font-normal text-primary">played ✓</span>}</p></div></div>}
+          <div className="grid grid-cols-2 gap-2"><Button variant={showArrows ? "default" : "secondary"} aria-pressed={showArrows} onClick={() => setShowArrows(v => !v)}><MoveUpRight />Best arrow</Button><Button variant={showEvalBar ? "default" : "secondary"} aria-pressed={showEvalBar} onClick={() => setShowEvalBar(v => !v)}><Gauge />Eval bar</Button></div>
+        </div>}
+        {section !== "review" && section !== "engine" && !review && <p className="mt-4 text-sm text-foreground/50">{progress ? "Analysis in progress…" : "No game analysis yet."}</p>}
         {section === "insights" && review && <><div className="mt-4 grid grid-cols-2 divide-x divide-border border-y border-border py-3"><Stat label="White accuracy" value={review.accuracy.white} performance={review.performance.white} /><Stat label="Black accuracy" value={review.accuracy.black} performance={review.performance.black} /></div><div className="mt-4 space-y-2">{Object.entries(CLASS_LABEL).map(([key, label]) => { const count = review.moves.filter(m => m.classification === key).length; return count ? <div key={key} className="flex items-center gap-2 text-sm"><img src={CLASS_ICON[key as keyof typeof CLASS_ICON]} alt="" className="h-5 w-5" /><span className="flex-1">{label}</span><span className="tabular-nums">{count}</span></div> : null; })}</div></>}
         {section === "report" && review && <div className="mt-4 space-y-3"><h3 className="font-semibold">Key moments</h3>{!criticalMoves.length && <p className="text-sm text-foreground/50">No major turning points found.</p>}{criticalMoves.map(m => <Button key={m.ply} variant="ghost" className="h-auto w-full justify-start whitespace-normal py-2 text-left" onClick={() => { jump(m.ply); setSection("review"); }}><img src={CLASS_ICON[m.classification]} alt="" className="h-5 w-5" /><span><span className="block">{Math.ceil(m.ply / 2)}{m.ply % 2 ? "." : "…"} {m.san} · {CLASS_LABEL[m.classification]}</span>{m.bestMoveSan && m.bestMoveSan !== m.san && <span className="block text-xs text-foreground/50">Best: {m.bestMoveSan} · {m.loss.toFixed(1)} win-chance points lost</span>}</span></Button>)}</div>}
         </div>
         {error && <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>}
       </section>
       {!active && <div className="empty-import"><GameImporter pgn={pgn} setPgn={setPgn} onLoad={load} sample={SAMPLE} onNewGame={startNewGame} /></div>}
-      {active && <section className="moves-section border-t border-border"><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 className="font-display font-semibold">Moves <span className="ml-2 text-xs font-normal text-foreground/40">{headers["Result"] ?? "*"}</span></h2><div className="flex items-center gap-1"><IconControl label={copied ? "Copied PGN" : "Copy PGN"} onClick={copyPgn}>{copied ? <Check /> : <Copy />}</IconControl><IconControl label="Download PGN" onClick={downloadPgn}><Download /></IconControl></div></div><span role="status" className="sr-only">{copied ? "PGN copied to clipboard" : ""}</span>{copyError && <p role="alert" className="mb-2 text-xs text-destructive">{copyError}</p>}<ol className="grid max-h-80 grid-cols-[2rem_1fr_1fr] gap-y-1 overflow-y-auto text-sm">{Array.from({ length: Math.ceil(moves.length / 2) }).map((_, r) => <MoveRow key={r} r={r} moves={moves} review={review} ply={ply} setPly={jump} pieceSet={pieceSet} />)}</ol></section>}
+      {active && <section className="moves-section border-t border-border"><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 className="font-display font-semibold">Moves <span className="ml-2 text-xs font-normal text-foreground/40">{headers["Result"] ?? "*"}</span></h2><div className="flex items-center gap-1"><IconControl label={copied ? "Copied PGN" : "Copy PGN"} onClick={copyPgn}>{copied ? <Check /> : <Copy />}</IconControl><IconControl label="Download PGN" onClick={downloadPgn}><Download /></IconControl></div></div><span role="status" className="sr-only">{copied ? "PGN copied to clipboard" : ""}</span>{copyError && <p role="alert" className="mb-2 text-xs text-destructive">{copyError}</p>}<ol className="move-list grid max-h-80 grid-cols-[2rem_1fr_1fr] gap-y-1 overflow-y-auto text-sm">{Array.from({ length: Math.ceil(moves.length / 2) }).map((_, r) => <MoveRow key={r} r={r} moves={moves} review={review} ply={ply} setPly={jump} pieceSet={pieceSet} />)}</ol></section>}
       {active && <div className="review-footer border-t border-border"><Button variant="secondary" className="w-full" onClick={reviewAnother}><Plus />Review another game</Button></div>}
     </aside>
     <BoardAppearance open={appearanceOpen} onOpenChange={setAppearanceOpen} board={boardTheme} pieceSet={pieceSet} onBoard={setBoardTheme} onPieces={setPieceSet} />

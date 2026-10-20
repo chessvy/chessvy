@@ -154,7 +154,9 @@
   .player-tag { margin-left: 28px; }
 }
 @media (min-width: 1024px) {
-  .workspace-grid { grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); gap: 2.5rem; }
+  .workspace-grid.has-game { grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); gap: 2.5rem; }
+  .workspace-grid.has-game .review-sidebar { order: -1; }
+  .workspace-grid.no-game { grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); gap: 2.5rem; }
 }
 /* Rings are contained by the icon, never by the piece or square. */
 @keyframes special-ring {
@@ -414,3 +416,10 @@
 .eval-mark { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; box-shadow: 0 0 0 2px var(--eval-black); cursor: pointer; }
 .eval-cursor-dot { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 0 3px oklch(0.8 0.14 82 / 35%); pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .genius-burst, .brilliant-verdict::after { display: none; } .brilliant-icon { animation: none; } }
+
+/* Mobile: each move is a block in a horizontal strip, like a move ticker. */
+@media (max-width: 1023px) {
+  .move-list { display: flex; flex-wrap: nowrap; align-items: center; gap: 4px; overflow-x: auto; overflow-y: hidden; max-height: none; padding-bottom: 6px; scrollbar-width: none; }
+  .move-list > span { flex: none; padding-left: 6px; }
+  .move-list .move-cell { flex: none; background: var(--secondary); border-radius: 6px; }
+}
