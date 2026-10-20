@@ -35,12 +35,12 @@ describe("progressive review", () => {
   });
   it("reuses the completed requested-depth runner-up without a restricted search", async () => {
     const move = new Chess().move("h4");
-    mocks.analyse.mockResolvedValueOnce([{ score: 40, move: "e2e4", depth: 20 }, { score: 20, move: "h2h4", depth: 20 }]);
-    mocks.analyse.mockResolvedValueOnce([{ score: 900, move: "e7e5", depth: 20 }]);
+    mocks.analyse.mockResolvedValueOnce([{ score: 40, move: "e2e4", depth: 15 }, { score: 20, move: "h2h4", depth: 15 }]);
+    mocks.analyse.mockResolvedValueOnce([{ score: 900, move: "e7e5", depth: 15 }]);
     const review = await analyzeGame([move], vi.fn(), { cancelled: false });
-    expect(ENGINE_DEPTH).toBe(20);
+    expect(ENGINE_DEPTH).toBe(15);
     expect(mocks.analyse).toHaveBeenCalledTimes(2);
-    expect(mocks.analyse).toHaveBeenNthCalledWith(1, move.before, 20, 2);
+    expect(mocks.analyse).toHaveBeenNthCalledWith(1, move.before, 15, 2);
     expect(review.moves[0]?.classification).toBe("excellent");
     expect(review.evals).toEqual([40, -900]);
   });
