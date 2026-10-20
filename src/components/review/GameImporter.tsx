@@ -3,7 +3,7 @@ import { FileText, Search, Upload, Play, LoaderCircle, ArrowDownToLine, Swords }
 import { Button } from "@/components/ui/button";
 import { ASSET } from "@/lib/asset-paths";
 import { fetchChessComGames, fetchLichessGames, type RemoteGame } from "@/lib/chess/importers";
-import { PlatformLogo, PlayerAvatar, type Platform } from "./PlayerAvatar";
+import { PlayerAvatar, type Platform } from "./PlayerAvatar";
 
 export type ImportTab = "pgn" | Platform | "new";
 type Tab = ImportTab;
