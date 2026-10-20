@@ -101,7 +101,7 @@ export function ReviewWorkspace() {
     previousPly.current = ply;
   }, [ply, sound, moves, review]);
   useEffect(() => { soundRef.current = sound; }, [sound]);
-  useEffect(() => { document.querySelector('.move-list [aria-current="step"]')?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" }); }, [ply]);
+  useEffect(() => { const list = document.querySelector<HTMLElement>(".move-list"); const el = list?.querySelector<HTMLElement>('[aria-current="step"]'); if (list && el) { const l = list.getBoundingClientRect(), r = el.getBoundingClientRect(); list.scrollBy({ left: r.left - l.left - (l.width - r.width) / 2, top: r.top < l.top || r.bottom > l.bottom ? r.top - l.top - (l.height - r.height) / 2 : 0, behavior: "smooth" }); } }, [ply]);
   const startNewGame = () => { cancelRef.current.cancelled = true; setPlaying(false); setSelected(null); setPromo(null); setMoves([]); setHeaders({ White: "White", Black: "Black" }); setPlatform(undefined); setReview(null); setPartial([]); setProgress(null); setPly(0); previousPly.current = 0; setSection("review"); setFreeBoard(true); setImportOpen(false); };
   const reviewAnother = () => {
     setImportOpen(true);
