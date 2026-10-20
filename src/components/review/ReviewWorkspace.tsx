@@ -296,7 +296,7 @@ function PlayerTag({ name, fallback, rating, platform }: { name?: string | undef
 }
 function PieceGlyph({ set, code, className = "h-full w-full" }: { set: PieceSet; code: string; className?: string }) {
   const render = PIECE_RENDERERS[set][code];
-  return <span className={`piece-glyph inline-block shrink-0 ${className}`}>{render?.()}</span>;
+  return <span data-color={code[0]} className={`piece-glyph inline-block shrink-0 ${className}`}>{render?.()}</span>;
 }
 function MoveRow({ r, moves, review, ply, setPly, pieceSet }: { r: number; moves: Move[]; review: GameReview | null; ply: number; setPly: (n: number) => void; pieceSet: PieceSet }) {
   const cell = (i: number) => { const m = moves[i]; if (!m) return <span />; const a = review?.moves[i]; return <Button variant={ply === i + 1 ? "secondary" : "ghost"} aria-current={ply === i + 1 ? "step" : undefined} onClick={() => setPly(i + 1)} className={`move-cell h-9 justify-start gap-1 px-1.5 ${a ? `cls-row-${a.classification}` : ""}`}><PieceGlyph set={pieceSet} code={m.color + m.piece.toUpperCase()} className="h-5 w-5" /><span>{m.piece === "p" ? m.san : m.san.replace(/^[KQRBN]/, "")}</span>{a && <img src={CLASS_ICON[a.classification]} alt={CLASS_LABEL[a.classification]} className="ml-auto h-4 w-4" />}</Button>; };

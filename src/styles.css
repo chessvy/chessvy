@@ -423,3 +423,6 @@
   .move-list > span { flex: none; padding-left: 6px; }
   .move-list .move-cell { flex: none; background: var(--secondary); border-radius: 6px; }
 }
+
+/* Black figurines stay readable on the dark theme. */
+.piece-glyph[data-color="b"] { filter: drop-shadow(0 0 0.6px var(--eval-white)) drop-shadow(0 0 0.6px var(--eval-white)); }
