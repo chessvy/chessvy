@@ -20,3 +20,6 @@
 - Engine search promises are cached only within one Engine instance using the full FEN and all search options; failures are evicted and termination clears reuse to avoid stale scores or cross-review state.
 - Serve engine, icons, sounds and logo from public/ via src/lib/asset-paths.ts, never Lovable-hosted asset pointers, because those URLs 404 on Cloudflare Pages.
 - Keep the review summary presentational and reuse the existing review results; game import moves into a dialog after loading to keep the review workspace focused without changing chess analysis.
+
+- Keep board appearance in a dedicated presentational module with allowlisted settings; render locally served piece sets and restore browser preferences after hydration.
+- Keep evaluation chart rendering independent of engine logic; use a fixed viewBox with preserveAspectRatio="none" so the connected plot fills its responsive frame without letterboxing.
