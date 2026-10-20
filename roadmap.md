@@ -1,10 +1,10 @@
 # Chessvy review improvements
-- [ ] Apply logo-led modern palette and tactile buttons without copying Chess.com
-- [ ] Simplify import and review states
-- [ ] Add board and piece appearance customization
-- [ ] Replace evaluation graph with a continuous full-width interactive chart
-- [ ] Reshape the review interface around the board, move feedback and compact game summary
-- [ ] Verify importing and navigating games on desktop and mobile
+- [x] Apply logo-led modern palette and tactile buttons without copying Chess.com
+- [x] Simplify import and review states
+- [x] Add board and piece appearance customization
+- [x] Replace evaluation graph with a continuous full-width interactive chart
+- [x] Reshape the review interface around the board, move feedback and compact game summary
+- [x] Verify importing and navigating games on desktop and mobile
 - [x] Reuse completed same-depth searches without changing default or adjustable depth
 - [x] Test search reuse and verify a real review completes
 - [x] Finish Copy PGN, add PGN download and key-move navigation

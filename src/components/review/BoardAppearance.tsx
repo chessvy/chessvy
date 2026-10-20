@@ -3,11 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { BOARD_THEMES, PIECE_SETS, type BoardTheme, type PieceSet } from "@/lib/chess/appearance";
 import { Check } from "lucide-react";
+import { ASSET } from "@/lib/asset-paths";
 
 const names = { jade: "Jade", stone: "Stone", ocean: "Ocean", rose: "Rose", classic: "Classic", merida: "Merida", alpha: "Alpha" };
 const pieces = (set: Exclude<PieceSet, "classic">): PieceRenderObject => Object.fromEntries(
   ["w", "b"].flatMap(color => ["K", "Q", "R", "B", "N", "P"].map(piece => [color + piece,
-    () => <img src={`/pieces/${set}/${color}${piece}.svg`} alt="" draggable={false} className="h-full w-full select-none" />]))
+    () => <img src={ASSET.piece(set, color + piece)} alt="" draggable={false} className="h-full w-full select-none" />]))
 );
 export const PIECE_RENDERERS = { classic: defaultPieces, merida: pieces("merida"), alpha: pieces("alpha") };
 
