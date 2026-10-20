@@ -229,3 +229,72 @@
 @keyframes brilliant-reveal { from { opacity: .4; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 @media (min-width: 1024px) { .review-sidebar { border-left: 1px solid var(--border); padding-left: 24px; } }
 @media (prefers-reduced-motion: reduce) { .brilliant-icon::before, .brilliant-icon::after, .brilliant-verdict { animation: none; } .brilliant-icon::before, .brilliant-icon::after { display: none; } }
+
+/* Chessvy's board-first review workspace. */
+:root {
+  --background: oklch(0.22 0.004 85);
+  --card: oklch(0.265 0.004 85);
+  --popover: oklch(0.265 0.004 85);
+  --secondary: oklch(0.31 0.004 85);
+  --muted: oklch(0.31 0.004 85);
+  --accent: oklch(0.36 0.005 85);
+  --primary: oklch(0.64 0.15 130);
+  --ring: var(--primary);
+  --surface-toolbar: oklch(0.265 0.004 85);
+  --board-light: oklch(0.9 0.025 95);
+  --board-dark: oklch(0.66 0.10 130);
+  --surface-header: oklch(0.185 0.004 85);
+  --surface-score: oklch(0.32 0.006 85);
+  --score-border: oklch(1 0 0 / 22%);
+  --primary-edge: oklch(0.46 0.11 130);
+}
+.app-header { background: var(--surface-header); }
+.workspace-grid { gap: 20px; align-items: start; }
+.board-column { width: 100%; max-width: 740px; margin-inline: auto; }
+.board-frame { border-radius: 3px; }
+.player-tag { min-height: 44px; }
+.player-tag p:first-child { font-weight: 700; }
+.review-sidebar { background: var(--card); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; padding: 0; }
+.review-panel-content { padding: 18px; }
+.analysis-tabs { margin-inline: -18px; padding-inline: 8px; margin-top: 14px; }
+.analysis-tabs [role="tab"] { height: 44px; font-weight: 700; }
+.analysis-tabs [aria-selected="true"] { background: transparent; }
+.review-run { min-height: 46px; box-shadow: 0 3px 0 var(--primary-edge); }
+.review-summary { padding-top: 18px; }
+.accuracy-score { background: var(--surface-score); border-radius: 5px; padding: 10px 12px; text-align: center; border: 1px solid var(--border); }
+.accuracy-score.white { border-top: 3px solid var(--eval-white); }
+.accuracy-score.black { border-top: 3px solid var(--score-border); }
+.accuracy-score strong { line-height: 1.25; margin-block: 3px; }
+.classification-summary { border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+.move-verdict, .position-verdict { background: var(--secondary); border-radius: 4px; padding: 14px; min-height: 76px; }
+.position-symbol { font-size: 34px; line-height: 1; }
+.empty-import { padding: 0 18px 18px; }
+.game-importer { padding-top: 18px; }
+.game-importer textarea { min-height: 150px; }
+.source-tabs [aria-selected="true"] { background: transparent; }
+.moves-section { padding: 14px 18px; }
+.review-sidebar ol { gap: 0; max-height: 290px; }
+.move-cell { border-radius: 0; height: 38px; font-weight: 500; }
+.review-sidebar ol > span { background: var(--surface-toolbar); padding-left: 8px; height: 38px; display: flex; align-items: center; }
+.move-cell[aria-current="step"] { background: var(--accent); }
+.review-footer { padding: 14px 18px; }
+.playback-toolbar { margin-top: 12px; border: 0; padding-block: 7px; }
+.evaluation-chart { margin-left: 54px; }
+.evaluation-chart svg { max-height: 100px; }
+.import-dialog { width: calc(100% - 24px); border-radius: 6px; background: var(--card); }
+@media (min-width: 1024px) {
+  .workspace-grid { grid-template-columns: minmax(0, 740px) minmax(330px, 400px); gap: 28px; justify-content: center; }
+  .review-sidebar { margin-top: 0; border-left: 1px solid var(--border); padding-left: 0; }
+}
+@media (max-width: 639px) {
+  .app-header > div { height: 54px; }
+  .app-header span:last-child { font-size: 12px; padding-left: 12px; margin-left: auto; }
+  .player-tag { min-height: 38px; }
+  .player-tag p:first-child { font-size: 13px; }
+  .workspace-grid { gap: 16px; }
+  .review-panel-content { padding: 14px; }
+  .analysis-tabs { margin-inline: -14px; }
+  .evaluation-chart { margin-left: 44px; }
+  .evaluation-chart svg { max-height: 85px; }
+  .empty-import, .moves-section, .review-footer { padding-inline: 14px; }
+}
