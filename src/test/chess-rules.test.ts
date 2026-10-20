@@ -42,6 +42,9 @@ describe("classification", () => {
       classifyMove({ ...base, bestCp: 100, playedCp: 100, playedIsBest: true, secondCp: -400, isSacrifice: true, verified: true }),
     ).toBe("genius");
   });
+  it("verified near-best sacrifice is genius even when not the only move", () => {
+    expect(classifyMove({ ...base, bestCp: 120, playedCp: 100, playedIsBest: false, secondCp: 110, isSacrifice: true, verified: true })).toBe("genius");
+  });
   it("never uses the word Brilliant", () => {
     expect(classifyMove({ ...base, bestCp: 0, playedCp: 0, playedIsBest: true })).not.toBe("brilliant");
   });
