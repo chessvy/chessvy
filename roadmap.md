@@ -1,4 +1,6 @@
 # Chessvy review improvements
+- [ ] Reshape the review interface around the board, move feedback and compact game summary
+- [ ] Verify importing and navigating games on desktop and mobile
 - [x] Reuse completed same-depth searches without changing default or adjustable depth
 - [x] Test search reuse and verify a real review completes
 - [x] Finish Copy PGN, add PGN download and key-move navigation
