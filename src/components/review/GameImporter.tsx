@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FileText, Search, Upload, Play, LoaderCircle, ArrowDownToLine, Swords } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ASSET } from "@/lib/asset-paths";
@@ -16,10 +16,13 @@ export function GameImporter({ pgn, setPgn, onLoad, sample, onNewGame, initialTa
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const request = useRef(0);
+  const userKey = `chessvy-user-${tab}`;
+  useEffect(() => { if (tab === "lichess" || tab === "chesscom") { try { setUser(localStorage.getItem(userKey) ?? ""); } catch { /* storage unavailable */ } } }, [tab, userKey]);
   const file = useRef<HTMLInputElement>(null);
   const search = async () => {
     const id = ++request.current;
     setLoading(true); setErr(null); setGames(null);
+    try { localStorage.setItem(userKey, user.trim()); } catch { /* storage unavailable */ }
     try {
       const results = tab === "lichess" ? await fetchLichessGames(user) : await fetchChessComGames(user);
       if (id === request.current) setGames(results);

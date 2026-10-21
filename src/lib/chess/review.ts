@@ -173,6 +173,7 @@ export async function analyzeGame(
       isSacrifice: isSacrifice(m),
       opponentPrevLoss: prevLoss,
       verified: verified.has(i),
+      isRecapture: !!m.captured && !!moves[i - 1]?.captured && moves[i - 1]?.to === m.to,
     });
     const a = moveAccuracy(loss);
     if (classification !== "book") acc[m.color].push(a);
