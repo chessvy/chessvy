@@ -156,7 +156,8 @@ export function ReviewWorkspace() {
       setPromo({ from, to }); return false;
     }
     let m: Move;
-    if (retry && retry.status !== "solved") {
+    if (retry) {
+      if (retry.status === "solved") { setSelected(null); return false; }
       if (from + to + (promotion ?? "") === retry.best || (from + to === retry.best.slice(0, 4))) { setRetry({ ...retry, status: "solved" }); setPly(retry.ply); }
       else setRetry({ ...retry, status: "wrong" });
       setSelected(null); return false;
@@ -245,6 +246,8 @@ export function ReviewWorkspace() {
         </div>
       </div>
       <PlayerTag name={orientation === "white" ? headers["White"] : headers["Black"]} fallback={orientation === "white" ? "White" : "Black"} rating={orientation === "white" ? headers["WhiteElo"] : headers["BlackElo"]} platform={platform} />
+        {analyzed && ["mistake", "miss", "blunder"].includes(analyzed.classification) && analyzed.bestMoveUci && !retry && <Button className="mt-3 w-full" onClick={() => { setPlaying(false); setRetry({ ply, best: analyzed.bestMoveUci!, status: "try" }); setPly(ply - 1); }}><RotateCw />Retry this move</Button>}
+        {retry && <div role="status" className="mt-3 rounded-md bg-secondary p-3 text-sm"><p className="font-semibold">{retry.status === "solved" ? "Correct! That's the best move." : retry.status === "wrong" ? "Not quite — try again." : "Find the best move on the board."}</p><div className="mt-2 flex gap-2">{retry.status !== "solved" && <Button size="sm" variant="secondary" onClick={() => { setRetry(null); setPly(retry.ply); }}>Show answer</Button>}<Button size="sm" variant="ghost" onClick={() => { setRetry(null); setPly(retry.ply); }}>Done</Button></div></div>}
       <div className="playback-toolbar mt-4 grid grid-cols-[auto_1fr_auto] items-center gap-1 border-y border-border py-2">
         <IconControl label="Flip board" onClick={() => setOrientation(o => o === "white" ? "black" : "white")}><RotateCw /></IconControl>
         <div className="flex items-center justify-center gap-0.5 sm:gap-2">
@@ -277,8 +280,6 @@ export function ReviewWorkspace() {
         <div id="analysis-panel" role="tabpanel">
         {section === "review" && active && !analyzed && <div className="position-verdict mt-4 flex items-center gap-3"><span className="position-symbol" aria-hidden>{last ? <PieceGlyph set={pieceSet} code={last.color + last.piece.toUpperCase()} /> : <img src={ASSET.logo} alt="" className="h-full w-full object-contain" />}</span><div><p className="text-sm font-semibold">{ply === 0 ? "Starting position" : last?.san}</p><p className="mt-1 text-xs text-foreground/70">{progress ? "Analyzing your game…" : review ? "Game ready" : `${headers["White"] ?? "White"} vs ${headers["Black"] ?? "Black"}`}</p></div></div>}
         {section === "review" && analyzed && <div key={ply} className={`move-verdict mt-4 flex items-center gap-3 border-l-4 pl-3 ${analyzed.classification === "genius" ? "brilliant-verdict" : analyzed.classification === "great" ? "great-verdict" : ""}`} style={{ borderLeftColor: `var(--cls-${analyzed.classification})` }}><div className="h-9 w-9 shrink-0"><ReviewBadge classification={analyzed.classification} special={special} /></div><div className="min-w-0 text-sm"><p className="flex items-center gap-1.5 font-semibold">{last && <PieceGlyph set={pieceSet} code={last.color + last.piece.toUpperCase()} className="h-5 w-5" />}<span>{analyzed.san}</span><span className={`verdict-label cls-text-${analyzed.classification}`}>{CLASS_LABEL[analyzed.classification]}</span></p>{analyzed.bestMoveSan && analyzed.bestMoveSan !== analyzed.san && <p className="mt-1 text-xs text-foreground/60">Best move: {analyzed.bestMoveSan}</p>}</div></div>}
-        {section === "review" && analyzed && ["mistake", "miss", "blunder"].includes(analyzed.classification) && analyzed.bestMoveUci && !retry && <Button className="mt-3 w-full" onClick={() => { setPlaying(false); setRetry({ ply, best: analyzed.bestMoveUci!, status: "try" }); setPly(ply - 1); }}><RotateCw />Retry this move</Button>}
-        {retry && <div role="status" className="mt-3 rounded-md bg-secondary p-3 text-sm"><p className="font-semibold">{retry.status === "solved" ? "Correct! That's the best move." : retry.status === "wrong" ? "Not quite — try again." : "Find the best move on the board."}</p><div className="mt-2 flex gap-2">{retry.status !== "solved" && <Button size="sm" variant="secondary" onClick={() => { setRetry(null); setPly(retry.ply); }}>Show answer</Button>}<Button size="sm" variant="ghost" onClick={() => { setRetry(null); setPly(retry.ply); }}>Done</Button></div></div>}
         {section === "review" && nextCritical && <Button variant="ghost" className="mt-3 w-full justify-start" onClick={() => jump(nextCritical.ply)}><Flag />Next key moment</Button>}
         {section === "engine" && active && <div className="mt-4 space-y-3">
           <div className="flex items-center gap-3 rounded-md bg-secondary p-3"><span className={`grid h-10 min-w-14 place-items-center rounded-md px-2 font-display text-sm font-bold ${evalCp !== null && evalCp < 0 ? "bg-eval-black text-eval-white" : "bg-eval-white text-eval-black"}`}>{formatEvaluation(evalCp)}</span><div className="min-w-0"><p className="text-xs text-foreground/50">Engine evaluation · depth {depth}</p><p className="text-sm font-semibold">{evalCp === null ? "Run review to evaluate" : evalCp > 50 ? "White is better" : evalCp < -50 ? "Black is better" : "Equal position"}</p></div></div>
