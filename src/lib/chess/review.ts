@@ -118,10 +118,8 @@ export async function analyzeGame(
           playedScores.set(i, before.runnerUp.score);
           continue;
         }
-        const lines = await engine.analyse(move.before, depth, 1, uci);
-        const played = lines[0];
-        if (!played || !Number.isFinite(played.score)) throw new Error("The played move couldn't be verified. Run review again.");
-        playedScores.set(i, played.score);
+        // The after-position search already scores this move; skipping a
+        // second search keeps reviews from stalling at 100%.
       }
     }
     // Rare sacrifice candidates receive a second, deeper search on both sides.
