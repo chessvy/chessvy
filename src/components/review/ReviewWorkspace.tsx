@@ -227,7 +227,7 @@ export function ReviewWorkspace() {
             </div>)}
           </div>}
           {kingOutcomes.some(k => k.outcome !== "defeat") && <Confetti key={`confetti-${finalResult}`} />}
-          {promo && <div className="absolute inset-0 z-20 flex items-center justify-center bg-overlay"><div className="flex gap-2 rounded-md border border-border bg-card p-3">{(["q", "r", "b", "n"] as const).map(p => <Button key={p} variant="secondary" onClick={() => { const pr = promo; setPromo(null); playMove(pr.from, pr.to, p); }}>{{ q: "♛", r: "♜", b: "♝", n: "♞" }[p]}<span className="sr-only">{{ q: "Queen", r: "Rook", b: "Bishop", n: "Knight" }[p]}</span></Button>)}</div></div>}
+          {promo && <div className="absolute inset-0 z-20 flex items-center justify-center bg-overlay"><div className="flex gap-2 rounded-md border border-border bg-card p-3">{(["q", "r", "b", "n"] as const).map(p => <Button key={p} variant="secondary" className="h-14 w-14 p-1" onClick={() => { const pr = promo; setPromo(null); playMove(pr.from, pr.to, p); }}><PieceGlyph set={pieceSet} code={chess.turn() + p.toUpperCase()} className="h-full w-full" /><span className="sr-only">{{ q: "Queen", r: "Rook", b: "Bishop", n: "Knight" }[p]}</span></Button>)}</div></div>}
         </div>
       </div>
       <PlayerTag name={orientation === "white" ? headers["White"] : headers["Black"]} fallback={orientation === "white" ? "White" : "Black"} rating={orientation === "white" ? headers["WhiteElo"] : headers["BlackElo"]} platform={platform} />
