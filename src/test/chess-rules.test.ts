@@ -73,3 +73,12 @@ describe("classification", () => {
     expect(classifyMove({ ...base, bestCp: -30, playedCp: -30, playedIsBest: true, secondCp: -400, isSacrifice: true, verified: true })).not.toBe("genius");
   });
 });
+
+import { classifyMove as cm } from "@/lib/chess/classify";
+import { openingName } from "@/lib/chess/openings";
+describe("main package rules", () => {
+  it("a recapture is never Great", () => {
+    expect(cm({ bestCp: 50, playedCp: 50, secondCp: -400, playedIsBest: true, isSacrifice: false, opponentPrevLoss: 0, isRecapture: true })).toBe("best");
+  });
+  it("names the Philidor for Morphy's opening", () => { expect(openingName("e4 e5 Nf3 d6 d4".split(" "))).toBe("Philidor Defense"); });
+});

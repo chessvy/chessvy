@@ -127,7 +127,7 @@ export function ReviewWorkspace() {
       setPlaying(false); setSelected(null); setPromo(null);
       setMoves(r.moves); setHeaders(r.headers);
       setPlatform(source ?? (r.headers["Site"]?.includes("lichess.org") ? "lichess" : r.headers["Site"]?.includes("chess.com") ? "chesscom" : undefined));
-      setReview(null); setPartial([]); setProgress(null); setPly(0); previousPly.current = 0;
+      setReview(null); setPartial([]); setProgress(null); setPly(0); previousPly.current = 0; setRetry(null);
       setSection("review"); setCopied(false); setCopyError(null); setImportOpen(false); setFreeBoard(false);
     } catch (e) { setError((e as Error).message); }
   };
