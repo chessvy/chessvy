@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { BoardAppearance, PIECE_RENDERERS } from "./BoardAppearance";
 import { EvalGraph } from "./EvalGraph";
 import { ASSET } from "@/lib/asset-paths";
+import { openingName } from "@/lib/chess/openings";
 import { readAppearance, type BoardTheme, type PieceSet } from "@/lib/chess/appearance";
 
 const START = new Chess().fen();
@@ -41,6 +42,9 @@ export function ReviewWorkspace() {
   const [error, setError] = useState<string | null>(null);
   const [review, setReview] = useState<GameReview | null>(null);
   const [partial, setPartial] = useState<number[]>([]);
+  const [retry, setRetry] = useState<{ ply: number; best: string; status: "try" | "wrong" | "solved" } | null>(null);
+  const [recent, setRecent] = useState<{ pgn: string; title: string; review: GameReview }[]>([]);
+  useEffect(() => { try { setRecent(JSON.parse(localStorage.getItem("chessvy-recent") ?? "[]")); } catch { /* ignore */ } }, []);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [selected, setSelected] = useState<Square | null>(null);
   const [promo, setPromo] = useState<{ from: Square; to: Square } | null>(null);
@@ -80,6 +84,7 @@ export function ReviewWorkspace() {
   const fen = ply === 0 ? (moves[0]?.before ?? START) : (moves[ply - 1]?.after ?? START);
   const game = useMemo(() => new Chess(fen), [fen]);
   const last = ply > 0 ? moves[ply - 1] : null;
+  const opening = useMemo(() => openingName(moves.map(m => m.san)), [moves]);
   const analyzed = ply > 0 ? review?.moves[ply - 1] : null;
   const jump = useCallback((n: number) => { setPlaying(false); setSelected(null); setPromo(null); setPly(n); }, []);
 
@@ -122,7 +127,7 @@ export function ReviewWorkspace() {
       setPlaying(false); setSelected(null); setPromo(null);
       setMoves(r.moves); setHeaders(r.headers);
       setPlatform(source ?? (r.headers["Site"]?.includes("lichess.org") ? "lichess" : r.headers["Site"]?.includes("chess.com") ? "chesscom" : undefined));
-      setReview(null); setPartial([]); setProgress(null); setPly(0); previousPly.current = 0;
+      setReview(null); setPartial([]); setProgress(null); setPly(0); previousPly.current = 0; setRetry(null);
       setSection("review"); setCopied(false); setCopyError(null); setImportOpen(false); setFreeBoard(false);
     } catch (e) { setError((e as Error).message); }
   };
@@ -136,7 +141,11 @@ export function ReviewWorkspace() {
       const r = await analyzeGame(moves, (done, total, evals) => {
         if (!signal.cancelled) { setProgress({ done, total }); setPartial(evals); }
       }, signal, depth);
-      if (!signal.cancelled) setReview(r);
+      if (!signal.cancelled) {
+        setReview(r);
+        const entry = { pgn: exportedPgn, title: `${headers["White"] ?? "White"} vs ${headers["Black"] ?? "Black"}`, review: r };
+        setRecent(list => { const next = [entry, ...list.filter(g => g.pgn !== entry.pgn)].slice(0, 5); try { localStorage.setItem("chessvy-recent", JSON.stringify(next)); } catch { /* storage full */ } return next; });
+      }
     } catch (e) { if (!signal.cancelled) setError((e as Error).message); }
     finally { if (!signal.cancelled) setProgress(null); }
   };
@@ -147,6 +156,11 @@ export function ReviewWorkspace() {
       setPromo({ from, to }); return false;
     }
     let m: Move;
+    if (retry && retry.status !== "solved") {
+      if (from + to + (promotion ?? "") === retry.best || (from + to === retry.best.slice(0, 4))) { setRetry({ ...retry, status: "solved" }); setPly(retry.ply); }
+      else setRetry({ ...retry, status: "wrong" });
+      setSelected(null); return false;
+    }
     try { m = c.move(promotion ? { from, to, promotion } : { from, to }); } catch { return false; }
     setPlaying(false);
     if (moves[ply]?.san !== m.san) {
@@ -155,7 +169,7 @@ export function ReviewWorkspace() {
       setHeaders(h => ({ ...h, Result: c.isCheckmate() ? (m.color === "w" ? "1-0" : "0-1") : c.isDraw() ? "1/2-1/2" : "*" })); setCopied(false);
     }
     setPly(ply + 1); setSelected(null); return true;
-  }, [fen, moves, ply]);
+  }, [fen, moves, ply, retry]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.closest("input,textarea,select,[contenteditable=true]")) return;
@@ -244,6 +258,7 @@ export function ReviewWorkspace() {
         <IconControl label="Settings" active={settingsOpen} onClick={() => setSettingsOpen(o => !o)}><Settings2 /></IconControl></div>
       </div>
       {review && ply === moves.length && gameOutcome(headers["Result"], orientation) && <div key={`ending-${orientation}`} role="status" className="badge-pop mt-3 flex items-center justify-center gap-3"><img className="h-8 w-8" src={RESULT_ICON[gameOutcome(headers["Result"], orientation) ?? "draw"]} alt="" /><span className="text-sm font-medium">{headers["Result"] === "1/2-1/2" ? "Draw" : `${headers[headers["Result"] === "1-0" ? "White" : "Black"] ?? (headers["Result"] === "1-0" ? "White" : "Black")} wins`}</span></div>}
+      {opening && <p className="mt-2 text-center text-xs font-semibold text-primary">{opening}</p>}
       <p className="mt-2 text-center text-xs text-foreground/60">{ply} / {moves.length} {last ? `· ${last.san}` : ""}</p>
       {!!moves.length && <EvalGraph evals={evals} total={moves.length + 1} ply={ply} onPick={jump} marks={review?.moves.map(m => m.classification)} />}
     </section>
@@ -262,6 +277,8 @@ export function ReviewWorkspace() {
         <div id="analysis-panel" role="tabpanel">
         {section === "review" && active && !analyzed && <div className="position-verdict mt-4 flex items-center gap-3"><span className="position-symbol" aria-hidden>{last ? <PieceGlyph set={pieceSet} code={last.color + last.piece.toUpperCase()} /> : <img src={ASSET.logo} alt="" className="h-full w-full object-contain" />}</span><div><p className="text-sm font-semibold">{ply === 0 ? "Starting position" : last?.san}</p><p className="mt-1 text-xs text-foreground/70">{progress ? "Analyzing your game…" : review ? "Game ready" : `${headers["White"] ?? "White"} vs ${headers["Black"] ?? "Black"}`}</p></div></div>}
         {section === "review" && analyzed && <div key={ply} className={`move-verdict mt-4 flex items-center gap-3 border-l-4 pl-3 ${analyzed.classification === "genius" ? "brilliant-verdict" : analyzed.classification === "great" ? "great-verdict" : ""}`} style={{ borderLeftColor: `var(--cls-${analyzed.classification})` }}><div className="h-9 w-9 shrink-0"><ReviewBadge classification={analyzed.classification} special={special} /></div><div className="min-w-0 text-sm"><p className="flex items-center gap-1.5 font-semibold">{last && <PieceGlyph set={pieceSet} code={last.color + last.piece.toUpperCase()} className="h-5 w-5" />}<span>{analyzed.san}</span><span className={`verdict-label cls-text-${analyzed.classification}`}>{CLASS_LABEL[analyzed.classification]}</span></p>{analyzed.bestMoveSan && analyzed.bestMoveSan !== analyzed.san && <p className="mt-1 text-xs text-foreground/60">Best move: {analyzed.bestMoveSan}</p>}</div></div>}
+        {section === "review" && analyzed && ["mistake", "miss", "blunder"].includes(analyzed.classification) && analyzed.bestMoveUci && !retry && <Button className="mt-3 w-full" onClick={() => { setPlaying(false); setRetry({ ply, best: analyzed.bestMoveUci!, status: "try" }); setPly(ply - 1); }}><RotateCw />Retry this move</Button>}
+        {retry && <div role="status" className="mt-3 rounded-md bg-secondary p-3 text-sm"><p className="font-semibold">{retry.status === "solved" ? "Correct! That's the best move." : retry.status === "wrong" ? "Not quite — try again." : "Find the best move on the board."}</p><div className="mt-2 flex gap-2">{retry.status !== "solved" && <Button size="sm" variant="secondary" onClick={() => { setRetry(null); setPly(retry.ply); }}>Show answer</Button>}<Button size="sm" variant="ghost" onClick={() => { setRetry(null); setPly(retry.ply); }}>Done</Button></div></div>}
         {section === "review" && nextCritical && <Button variant="ghost" className="mt-3 w-full justify-start" onClick={() => jump(nextCritical.ply)}><Flag />Next key moment</Button>}
         {section === "engine" && active && <div className="mt-4 space-y-3">
           <div className="flex items-center gap-3 rounded-md bg-secondary p-3"><span className={`grid h-10 min-w-14 place-items-center rounded-md px-2 font-display text-sm font-bold ${evalCp !== null && evalCp < 0 ? "bg-eval-black text-eval-white" : "bg-eval-white text-eval-black"}`}>{formatEvaluation(evalCp)}</span><div className="min-w-0"><p className="text-xs text-foreground/50">Engine evaluation · depth {depth}</p><p className="text-sm font-semibold">{evalCp === null ? "Run review to evaluate" : evalCp > 50 ? "White is better" : evalCp < -50 ? "Black is better" : "Equal position"}</p></div></div>
@@ -274,6 +291,7 @@ export function ReviewWorkspace() {
         </div>
         {error && <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>}
       </section>
+      {!active && recent.length > 0 && <section className="mt-4"><h2 className="mb-2 font-display text-sm font-semibold">Recent reviews</h2><div className="space-y-1.5">{recent.map(g => <Button key={g.pgn} variant="secondary" className="w-full justify-start truncate" onClick={() => { load(g.pgn); setReview(g.review); }}><FileText />{g.title}</Button>)}</div></section>}
       {!active && <div className="empty-import"><GameImporter pgn={pgn} setPgn={setPgn} onLoad={load} sample={SAMPLE} onNewGame={startNewGame} /></div>}
       {active && <section className="moves-section border-t border-border"><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 className="font-display font-semibold">Moves <span className="ml-2 text-xs font-normal text-foreground/40">{headers["Result"] ?? "*"}</span></h2><div className="flex items-center gap-1"><IconControl label={copied ? "Copied PGN" : "Copy PGN"} onClick={copyPgn}>{copied ? <Check /> : <Copy />}</IconControl><IconControl label="Download PGN" onClick={downloadPgn}><Download /></IconControl></div></div><span role="status" className="sr-only">{copied ? "PGN copied to clipboard" : ""}</span>{copyError && <p role="alert" className="mb-2 text-xs text-destructive">{copyError}</p>}<ol className="move-list grid max-h-80 grid-cols-[2rem_1fr_1fr] gap-y-1 overflow-y-auto text-sm">{Array.from({ length: Math.ceil(moves.length / 2) }).map((_, r) => <MoveRow key={r} r={r} moves={moves} review={review} ply={ply} setPly={jump} pieceSet={pieceSet} />)}</ol></section>}
       {active && <div className="review-footer border-t border-border"><Button variant="secondary" className="w-full" onClick={reviewAnother}><Plus />Review another game</Button></div>}

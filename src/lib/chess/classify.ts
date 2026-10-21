@@ -53,6 +53,8 @@ export interface ClassifyInput {
   opponentPrevLoss: number;
   /** True only after deeper engine verification and a legal material sacrifice. */
   verified?: boolean;
+  /** Taking back a piece the opponent just captured on the same square. */
+  isRecapture?: boolean;
 }
 
 export function winLoss(bestCp: number, playedCp: number): number {
@@ -71,7 +73,7 @@ export function classifyMove(i: ClassifyInput): Classification {
   if (i.playedIsBest || loss <= 0.5) {
     const onlyMove =
       i.secondCp !== null && winChance(i.bestCp) - winChance(i.secondCp) >= T.greatGap;
-    if (onlyMove && i.playedIsBest && loss <= T.excellent && Math.abs(i.bestCp) < 700) return "great";
+    if (onlyMove && i.playedIsBest && loss <= T.excellent && Math.abs(i.bestCp) < 700 && !i.isRecapture) return "great";
     return "best";
   }
   if (loss <= T.excellent) return "excellent";
